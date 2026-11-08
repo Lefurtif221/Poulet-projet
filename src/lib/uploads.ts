@@ -18,6 +18,10 @@ export async function saveImage(file: File | null | undefined): Promise<string |
   const extension = extensionFor(file.type);
   const filename = `uploads/${randomUUID()}.${extension}`;
 
+  if (process.env.VERCEL && !process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("Stockage photos non configuré. Connectez un store Vercel Blob au projet.");
+  }
+
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const blob = await put(filename, file, {
       access: "public",

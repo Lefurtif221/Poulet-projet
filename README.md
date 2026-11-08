@@ -116,6 +116,8 @@ comme envoyé. L'API WhatsApp Business pourra remplacer l'envoi manuel sans chan
 
 ## Déploiement gratuit (Vercel Hobby + Neon Free + Vercel Blob)
 
+Guide pas à pas : **[DEPLOY.md](./DEPLOY.md)**.
+
 Cible recommandée pour les premiers clients : **0 FCFA/mois**, hors nom de domaine.
 
 ### 1. Base Neon Free
