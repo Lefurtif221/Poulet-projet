@@ -193,7 +193,7 @@ export default async function AdminDashboard() {
               <Card className="p-5 text-sm text-on-surface-variant">Aucune commande active.</Card>
             ) : (
               <Card className="overflow-x-auto">
-                <table className="table-base min-w-[700px]">
+                <table className="table-base min-w-[640px]">
                   <thead>
                     <tr>
                       <th>Commande</th>

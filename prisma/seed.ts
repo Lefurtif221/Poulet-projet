@@ -158,6 +158,7 @@ async function main() {
           unit: "PIECE",
           price: 2400,
           stock: 240,
+          imageUrl: "/images/products/poulet-chair.jpg",
           description:
             "Poulet prêt à cuire, 1,3 – 1,45 kg. Éviscéré, abattu le matin, conditionné sous vide. Idéal rôtisserie et grill.",
         },
@@ -168,6 +169,7 @@ async function main() {
           unit: "PIECE",
           price: 2600,
           stock: 110,
+          imageUrl: "/images/products/poulet-vivant.jpg",
           description: "Poids vif en poulailler, option abattage à la demande. 1,75 – 1,90 kg.",
         },
         {
@@ -177,6 +179,7 @@ async function main() {
           unit: "PLATEAU",
           price: 2300,
           stock: 140,
+          imageUrl: "/images/products/oeufs-gros.jpg",
           description: "Œufs du jour, calibre 53 – 60 g. Remplacement immédiat des œufs cassés.",
         },
         {
@@ -186,6 +189,7 @@ async function main() {
           unit: "PIECE",
           price: 3800,
           stock: 85,
+          imageUrl: "/images/products/poulet-fermier.jpg",
           description: "Élevé plein air minimum 70 jours, alimentation locale. Chair ferme et goûteuse.",
         },
         {
@@ -195,6 +199,7 @@ async function main() {
           unit: "PLATEAU",
           price: 2050,
           stock: 180,
+          imageUrl: "/images/products/oeufs-moyens.jpg",
           description: "Calibre 53 – 60 g, idéal pâtisserie et buffets. Casse garantie sous 3 %.",
         },
       ],

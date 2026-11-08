@@ -81,13 +81,15 @@ export function ProductCard({ product }: { product: CatalogueProduct }) {
     <article className="card card-hover flex flex-col overflow-hidden border-t-[3px] border-t-primary-container">
       <div className="relative">
         <ProductImage product={product} />
-        <span className="absolute left-2 top-2 badge bg-white/90 text-on-surface shadow-sm backdrop-blur">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          {product.supplierName}
-        </span>
-        <span className="absolute right-2 top-2 badge bg-surface-container-lowest/95 text-on-surface-variant shadow-sm">
-          Stock : {product.stock} {PRODUCT_UNIT[product.unit]}
-        </span>
+        <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1">
+          <span className="badge max-w-[58%] truncate bg-white/90 text-on-surface shadow-sm backdrop-blur">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+            {product.supplierName}
+          </span>
+          <span className="badge whitespace-nowrap bg-surface-container-lowest/95 text-on-surface-variant shadow-sm">
+            Stock : {product.stock}
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col p-4">
@@ -146,7 +148,7 @@ export function ProductCard({ product }: { product: CatalogueProduct }) {
             <button
               type="button"
               onClick={add}
-              className={buttonClass(added ? "secondary" : "primary", "md", "flex-1")}
+              className={buttonClass(added ? "secondary" : "primary", "md", "flex-1 whitespace-nowrap text-xs")}
             >
               <Icon name={added ? "check" : "add_shopping_cart"} className="text-lg" />
               {added ? "Ajouté" : formatFCFA(product.price * quantity)}
