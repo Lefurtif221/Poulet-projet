@@ -11,3 +11,6 @@ tsconfig.tsbuildinfo
 .pgdata
 public/uploads
 *.png.tmp
+.vercel
+.env*
+.vercel
