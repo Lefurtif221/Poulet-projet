@@ -8,8 +8,10 @@ export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   const provided =
     request.headers.get("x-cron-secret") ?? new URL(request.url).searchParams.get("secret");
+  const authorization = request.headers.get("authorization");
+  const bearer = authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
 
-  if (!secret || provided !== secret) {
+  if (!secret || (provided !== secret && bearer !== secret)) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 

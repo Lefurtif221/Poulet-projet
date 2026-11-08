@@ -13,14 +13,20 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:seed:prod": "tsx prisma/seed-prod.ts",
     "db:studio": "prisma studio",
-    "test:e2e": "node --env-file=.env scripts/e2e.mjs"
+    "test:e2e": "node --env-file=.env scripts/e2e.mjs",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "@vercel/blob": "^2.8.2",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "jose": "^6.1.0",

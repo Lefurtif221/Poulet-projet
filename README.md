@@ -114,15 +114,66 @@ comme envoyé. L'API WhatsApp Business pourra remplacer l'envoi manuel sans chan
 
 À planifier une fois par jour (cron serveur, Vercel Cron, Task Scheduler…).
 
-## Déploiement
+## Déploiement gratuit (Vercel Hobby + Neon Free + Vercel Blob)
 
-1. PostgreSQL managé (Neon, Supabase, RDS…) avec `DATABASE_URL`.
-2. Hébergement Next.js (Vercel, VPS…) + `AUTH_SECRET`, `CRON_SECRET`.
-3. `npx prisma migrate deploy` (ou `db push` pour un premier déploiement), puis `db:seed` si démo.
-4. Stockage des photos : `public/uploads` convient en local, mais utiliser un stockage objet
-   (S3, Cloudflare R2) en production serverless.
-5. Planifier le cron quotidien.
-6. Vérifier HTTPS, sauvegardes quotidiennes et test de restauration mensuel.
+Cible recommandée pour les premiers clients : **0 FCFA/mois**, hors nom de domaine.
+
+### 1. Base Neon Free
+
+1. Créer un projet sur https://neon.com dans la région **Paris (eu-west-3)**.
+2. Récupérer la chaîne **pooled** (hôte `...-pooler...`) et la chaîne **directe**.
+3. Renseigner dans Vercel :
+   - `DATABASE_URL` = URL poolée + `?sslmode=require&pgbouncer=true&connect_timeout=15`
+   - `DIRECT_URL` = URL directe + `?sslmode=require`
+
+### 2. Stockage photos
+
+Dans Vercel → Storage → créer un store **Blob**, le connecter au projet. La variable
+`BLOB_READ_WRITE_TOKEN` est ajoutée automatiquement. En local, l'absence de token fait
+basculer l'upload vers `public/uploads`.
+
+### 3. Application Vercel
+
+1. Importer le dépôt GitHub dans Vercel (framework Next.js détecté).
+2. Ajouter `AUTH_SECRET`, `CRON_SECRET`, `DATABASE_URL`, `DIRECT_URL`.
+3. Le script `vercel-build` exécute `prisma generate && prisma migrate deploy && next build`.
+4. Déployer. Le cron `0 6 * * *` (06h00 Dakar) est déclaré dans `vercel.json` et appelle
+   `/api/cron/recurring` avec `Authorization: Bearer $CRON_SECRET`.
+
+### 4. Initialiser la production
+
+Une seule fois, depuis la machine locale avec les variables Neon :
+
+```bash
+npm run db:seed:prod
+```
+
+Cela crée uniquement le compte admin (`ADMIN_PHONE`, `ADMIN_PIN`) et les paramètres par
+défaut. `db:seed` reste réservé à la démo.
+
+### Quotas gratuits et limites
+
+| Ressource | Quota gratuit | Ce que ça couvre |
+|---|---|---|
+| Neon Free | 1 Go, 100 CU-h/mois, 5 Go réseau | Des dizaines de milliers de commandes ; compute suffisant pour un trafic faible |
+| Vercel Hobby | Fonctions, 100 Go bande passante, 2 crons/jour | App, Server Actions, cron quotidien |
+| Vercel Blob | 1 Go, 2 000 uploads/mois | ~300 photos à 3 Mo, ~3 000 à 300 Ko |
+| Neon veille | Suspension après 5 min | +0,5 à 2 s au premier appel après inactivité |
+
+Points de vigilance :
+
+- **Sauvegardes** : Neon Free offre 6 h de restauration instantanée et 1 snapshot manuel,
+  pas de sauvegarde quotidienne automatique. Pour un vrai lancement, faire un `pg_dump`
+  hebdomadaire ou passer à Neon Launch.
+- **Dépassement** : les quotas gratuits suspendent le service au lieu de facturer.
+- **Vercel Hobby** est réservé à un usage non commercial ; passer à Pro quand l'activité
+  devient réellement commerciale.
+- **Latence** : héberger Neon et les fonctions à Paris (`cdg1`) limite la latence depuis Dakar.
+
+### Alternative VPS
+
+Un VPS Paris avec Docker Compose (app + PostgreSQL + Caddy) coûte ~8–12 €/mois, avec disque
+persistant et sauvegardes locales, mais demande l'administration du serveur.
 
 ## Limites assumées du MVP / V2
 
@@ -131,7 +182,7 @@ comme envoyé. L'API WhatsApp Business pourra remplacer l'envoi manuel sans chan
 - Pas de géolocalisation temps réel ni d'avis publics (V2).
 - Clients particuliers : réglages présents, parcours dédié désactivé au lancement.
 - Notifications WhatsApp en file d'attente + envoi manuel, pas encore d'API.
-- Upload de photos local (`public/uploads`), à migrer vers un stockage objet.
+- Photos : Vercel Blob en production, `public/uploads` en local (bascule automatique).
 - Le crédit est accordé manuellement, sans score automatique.
 - Juridique, fiscalité, CDP et agréments sanitaires sont à valider avant la première vente
   (voir `src/app/legal`).
