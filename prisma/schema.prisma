@@ -1,0 +1,442 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  FOURNISSEUR
+  ADMIN
+}
+
+enum ClientType {
+  PRO
+  PARTICULIER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REFUSED
+}
+
+enum ProductCategory {
+  POULET_CHAIR
+  POULET_FERMIER
+  OEUFS
+}
+
+enum ProductUnit {
+  PIECE
+  KG
+  PLATEAU
+}
+
+enum OrderStatus {
+  SENT
+  CONFIRMED
+  REFUSED
+  PREPARING
+  READY
+  IN_DELIVERY
+  DELIVERED
+  CLOSED
+  DISPUTED
+  REASSIGNED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  WAVE
+  ORANGE_MONEY
+  CASH_ON_DELIVERY
+  CREDIT
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  BLOCKED
+}
+
+enum DeliveryStatus {
+  PENDING
+  PICKED_UP
+  DELIVERED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+enum DisputeDecision {
+  REPLACEMENT
+  CREDIT_NOTE
+  PARTIAL_REFUND
+  FULL_REFUND
+  NO_ACTION
+}
+
+enum CommissionScope {
+  GLOBAL
+  SUPPLIER
+  PRODUCT
+  CLIENT
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  SMS
+  APP
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model User {
+  id               String     @id @default(cuid())
+  phone            String     @unique
+  pinHash          String
+  name             String
+  role             Role
+  status           UserStatus @default(PENDING)
+  failedAttempts   Int        @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  client            Client?
+  supplier          Supplier?
+  confirmedPayments Payment[]       @relation("PaymentConfirmedBy")
+  activityLogs      ActivityLog[]
+  notifications     Notification[]
+}
+
+model Client {
+  id             String     @id @default(cuid())
+  userId         String     @unique
+  type           ClientType @default(PRO)
+  establishment  String
+  address        String
+  district       String?
+  activityType   String?
+  ninea          String?
+  creditLimit    Int        @default(0)
+  creditDelayDays Int       @default(0)
+  balanceDue     Int        @default(0)
+  internalNote   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders           Order[]
+  payments         Payment[]
+  recurringOrders  RecurringOrder[]
+  commissionRules  CommissionRule[]
+
+  @@index([type])
+}
+
+model Supplier {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  farmName        String
+  location        String
+  capacity        Int      @default(0)
+  farmType        String?
+  description     String?
+  paymentProvider String?
+  paymentAccount  String?
+  internalNote    String?
+  isOpen          Boolean  @default(true)
+  isPaused        Boolean  @default(false)
+  pauseReason     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products        Product[]
+  orders          Order[]
+  payouts         Payout[]
+  payments        Payment[]
+  commissionRules CommissionRule[]
+}
+
+model Product {
+  id            String          @id @default(cuid())
+  supplierId    String
+  name          String
+  category      ProductCategory
+  unit          ProductUnit
+  price         Int
+  stock         Int             @default(0)
+  available     Boolean         @default(true)
+  availableFrom DateTime?
+  imageUrl      String?
+  description   String?
+  active        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  supplier        Supplier             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  orderItems      OrderItem[]
+  recurringItems  RecurringOrderItem[]
+  commissionRules CommissionRule[]
+
+  @@index([supplierId, active])
+}
+
+model Order {
+  id               String          @id @default(cuid())
+  reference        String          @unique
+  clientId         String
+  supplierId       String
+  recurringOrderId String?
+  deliveryDate     DateTime
+  deliverySlot     String
+  address          String
+  note             String?
+  status           OrderStatus     @default(SENT)
+  subtotal         Int
+  supplierTotal    Int             @default(0)
+  commissionRate   Float
+  commissionAmount Int
+  deliveryFee      Int             @default(0)
+  total            Int
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus   @default(PENDING)
+  creditDueDate    DateTime?
+  acceptDeadline   DateTime
+  refusalReason    String?
+  cancelReason     String?
+  confirmedAt      DateTime?
+  refusedAt        DateTime?
+  readyAt          DateTime?
+  deliveredAt      DateTime?
+  closedAt         DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  client         Client          @relation(fields: [clientId], references: [id])
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
+  recurringOrder RecurringOrder? @relation(fields: [recurringOrderId], references: [id])
+  items          OrderItem[]
+  payments       Payment[]
+  delivery       Delivery?
+  dispute        Dispute?
+  payoutItems    PayoutItem[]
+  notifications  Notification[]
+
+  @@index([clientId, status])
+  @@index([supplierId, status])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id               String      @id @default(cuid())
+  orderId          String
+  productId        String
+  productName      String
+  unit             ProductUnit
+  quantity         Int
+  quantityDelivered Int?
+  unitPrice        Int
+  supplierUnitPrice Int            @default(0)
+  lineTotal        Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String?
+  clientId    String?
+  supplierId  String?
+  amount      Int
+  method      PaymentMethod
+  reference   String?
+  status      PaymentStatus @default(PENDING)
+  note        String?
+  confirmedById String?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+
+  order       Order?    @relation(fields: [orderId], references: [id])
+  client      Client?   @relation(fields: [clientId], references: [id])
+  supplier    Supplier? @relation(fields: [supplierId], references: [id])
+  confirmedBy User?     @relation("PaymentConfirmedBy", fields: [confirmedById], references: [id])
+
+  @@index([orderId])
+  @@index([clientId, status])
+}
+
+model Payout {
+  id         String       @id @default(cuid())
+  supplierId String
+  amount     Int
+  status     PayoutStatus @default(PENDING)
+  reference  String?
+  note       String?
+  paidAt     DateTime?
+  createdAt  DateTime     @default(now())
+
+  supplier Supplier     @relation(fields: [supplierId], references: [id])
+  items    PayoutItem[]
+
+  @@index([supplierId, status])
+}
+
+model PayoutItem {
+  id       String @id @default(cuid())
+  payoutId String
+  orderId  String
+  amount   Int
+
+  payout Payout @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [orderId], references: [id])
+
+  @@unique([payoutId, orderId])
+}
+
+model Delivery {
+  id           String         @id @default(cuid())
+  orderId      String         @unique
+  courierName  String?
+  courierPhone String?
+  cost         Int            @default(0)
+  status       DeliveryStatus @default(PENDING)
+  pickupAt     DateTime?
+  deliveredAt  DateTime?
+  photoUrl     String?
+  note         String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Dispute {
+  id             String          @id @default(cuid())
+  orderId        String          @unique
+  reason         String
+  description    String?
+  photoUrl       String?
+  status         DisputeStatus   @default(OPEN)
+  decision       DisputeDecision?
+  adjustedAmount Int             @default(0)
+  adminNote      String?
+  createdAt      DateTime        @default(now())
+  resolvedAt     DateTime?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model RecurringOrder {
+  id             String        @id @default(cuid())
+  clientId       String
+  label          String?
+  dayOfWeek      Int
+  active         Boolean       @default(true)
+  deliverySlot   String
+  address        String?
+  note           String?
+  paymentMethod  PaymentMethod
+  lastRunAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  client Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items  RecurringOrderItem[]
+  orders Order[]
+}
+
+model RecurringOrderItem {
+  id               String @id @default(cuid())
+  recurringOrderId String
+  productId        String
+  quantity         Int
+
+  recurringOrder RecurringOrder @relation(fields: [recurringOrderId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id])
+
+  @@unique([recurringOrderId, productId])
+}
+
+model CommissionRule {
+  id         String          @id @default(cuid())
+  scope      CommissionScope
+  supplierId String?
+  productId  String?
+  clientId   String?
+  rate       Float
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  client   Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String?
+  orderId   String?
+  recipient String
+  channel   NotificationChannel @default(WHATSAPP)
+  event     String
+  message   String
+  status    NotificationStatus  @default(QUEUED)
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user  User?  @relation(fields: [userId], references: [id])
+  order Order? @relation(fields: [orderId], references: [id])
+
+  @@index([status, createdAt])
+}
