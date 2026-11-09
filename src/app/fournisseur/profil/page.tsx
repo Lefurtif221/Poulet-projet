@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
-import { Alert, Icon, buttonClass } from "@/components/ui";
+import { Alert, Icon } from "@/components/ui";
 import { SupplierProfileForm } from "@/components/supplier/profile-form";
 import { pauseSupplierAction } from "@/lib/actions/supplier";
+import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Mon élevage" };
 
@@ -70,10 +71,10 @@ export default async function SupplierProfilePage() {
                 <option value="Problème sanitaire">Problème sanitaire</option>
                 <option value="Congé / absence">Congé / absence</option>
               </select>
-              <button type="submit" className={buttonClass("danger", "md", "w-full")}>
+              <PendingButton variant="danger" className="w-full" pendingLabel="Fermeture…">
                 <Icon name="pause" className="text-lg" />
                 Fermer la réception
-              </button>
+              </PendingButton>
             </form>
           </section>
 

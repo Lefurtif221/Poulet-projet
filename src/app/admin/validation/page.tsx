@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import { ROLE } from "@/lib/labels";
-import { EmptyState, Icon, buttonClass } from "@/components/ui";
+import { EmptyState, Icon } from "@/components/ui";
 import { approveUserAction, refuseUserAction } from "@/lib/actions/admin";
+import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Validation des comptes" };
 
@@ -110,17 +111,17 @@ export default async function AdminValidationPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <form action={approveUserAction}>
                     <input type="hidden" name="userId" value={user.id} />
-                    <button type="submit" className={buttonClass("primary")}>
+                    <PendingButton pendingLabel="Validation…">
                       <Icon name="check" className="text-lg" />
                       Approuver le compte
-                    </button>
+                    </PendingButton>
                   </form>
                   <form action={refuseUserAction}>
                     <input type="hidden" name="userId" value={user.id} />
-                    <button type="submit" className={buttonClass("outline", "md", "text-[#a8421a]")}>
+                    <PendingButton variant="outline" className="text-[#a8421a]" pendingLabel="Refus…">
                       <Icon name="close" className="text-lg" />
                       Refuser
-                    </button>
+                    </PendingButton>
                   </form>
                 </div>
               </article>

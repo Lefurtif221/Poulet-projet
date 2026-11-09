@@ -12,11 +12,11 @@ import {
   Icon,
   PaymentBadge,
   StatusBadge,
-  buttonClass,
 } from "@/components/ui";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { DisputeForm } from "@/components/orders/dispute-form";
 import { cancelOrderAction, confirmReceiptAction, reorderAction } from "@/lib/actions/orders";
+import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Suivi de commande" };
 
@@ -81,19 +81,19 @@ export default async function OrderDetailPage({
           {order.status === "SENT" ? (
             <form action={cancelOrderAction}>
               <input type="hidden" name="orderId" value={order.id} />
-              <button type="submit" className={buttonClass("outline")}>
+              <PendingButton variant="outline" pendingLabel="Annulation…">
                 <Icon name="close" className="text-lg" />
                 Annuler
-              </button>
+              </PendingButton>
             </form>
           ) : null}
           {["CLOSED", "DELIVERED", "CANCELLED"].includes(order.status) ? (
             <form action={reorderAction}>
               <input type="hidden" name="orderId" value={order.id} />
-              <button type="submit" className={buttonClass("outline")}>
+              <PendingButton variant="outline" pendingLabel="Création…">
                 <Icon name="replay" className="text-lg" />
                 Recommander
-              </button>
+              </PendingButton>
             </form>
           ) : null}
           {["CLOSED", "DELIVERED", "DISPUTED"].includes(order.status) ? (
@@ -209,10 +209,10 @@ export default async function OrderDetailPage({
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <form action={confirmReceiptAction}>
                   <input type="hidden" name="orderId" value={order.id} />
-                  <button type="submit" className={buttonClass("primary", "md", "w-full")}>
+                  <PendingButton className="w-full" pendingLabel="Confirmation…">
                     <Icon name="check_circle" className="text-lg" />
                     Tout est conforme
-                  </button>
+                  </PendingButton>
                 </form>
                 <div className="rounded-lg border border-[#a8421a]/30 bg-[#a8421a]/5 px-3 py-2 text-xs text-[#862a01]">
                   <p className="font-semibold">Un problème ?</p>

@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "4mb",
     },
+    staleTimes: {
+      dynamic: 20,
+      static: 180,
+    },
   },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];

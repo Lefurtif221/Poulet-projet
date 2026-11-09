@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatFCFA } from "@/lib/format";
-import { Alert, Card, Icon, ProgressBar, buttonClass } from "@/components/ui";
+import { Alert, Card, Icon, ProgressBar } from "@/components/ui";
 import { updateCreditAction } from "@/lib/actions/admin";
+import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Crédit & risque" };
 
@@ -168,10 +169,10 @@ export default async function AdminCreditPage() {
                     className="input h-9 text-xs"
                   />
                 </div>
-                <button type="submit" className={buttonClass("primary", "sm")}>
+                <PendingButton size="sm" pendingLabel="…">
                   <Icon name="save" className="text-base" />
                   OK
-                </button>
+                </PendingButton>
               </form>
               {overdue.length > 0 ? (
                 <p className="mt-1 text-[10px] font-semibold text-red-700">

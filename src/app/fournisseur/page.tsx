@@ -14,6 +14,7 @@ import {
   buttonClass,
 } from "@/components/ui";
 import { RefuseOrderForm } from "./refuse-order-form";
+import { PendingButton } from "@/components/forms/pending-button";
 import {
   acceptOrderAction,
   markReadyAction,
@@ -210,10 +211,10 @@ export default async function SupplierDashboard() {
                       <div className="mt-3 flex flex-wrap items-start gap-2">
                         <form action={acceptOrderAction}>
                           <input type="hidden" name="orderId" value={order.id} />
-                          <button type="submit" className={buttonClass("primary")}>
+                          <PendingButton pendingLabel="Acceptation…">
                             <Icon name="check" className="text-lg" />
                             Accepter la commande
-                          </button>
+                          </PendingButton>
                         </form>
                         <details className="w-full sm:w-auto">
                           <summary className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant px-3 text-sm font-semibold text-[#a8421a]">
@@ -275,10 +276,10 @@ export default async function SupplierDashboard() {
                       {order.status === "CONFIRMED" ? (
                         <form action={startPreparingAction}>
                           <input type="hidden" name="orderId" value={order.id} />
-                          <button type="submit" className={buttonClass("outline", "sm")}>
+                          <PendingButton variant="outline" size="sm" pendingLabel="Préparation…">
                             <Icon name="pending_actions" className="text-base" />
                             Commencer la préparation
-                          </button>
+                          </PendingButton>
                         </form>
                       ) : null}
                       <form action={markReadyAction} className="flex flex-1 flex-wrap items-center gap-2">
@@ -289,10 +290,10 @@ export default async function SupplierDashboard() {
                           accept="image/jpeg,image/png,image/webp"
                           className="input h-10 max-w-52 text-xs file:mr-2 file:rounded file:border-0 file:bg-surface-container file:px-2 file:py-1 file:text-[10px] file:font-semibold"
                         />
-                        <button type="submit" className={buttonClass("primary", "sm")}>
+                        <PendingButton size="sm" pendingLabel="Enregistrement…">
                           <Icon name="photo_camera" className="text-base" />
                           Marquer prêt à enlever
-                        </button>
+                        </PendingButton>
                       </form>
                     </div>
                     <p className="mt-1 text-[10px] text-on-surface-variant">
@@ -377,9 +378,9 @@ export default async function SupplierDashboard() {
                         className="input h-9 w-20 text-xs"
                         aria-label={`Stock de ${product.name}`}
                       />
-                      <button type="submit" className={buttonClass("outline", "sm")}>
+                      <PendingButton variant="outline" size="sm" pendingLabel="Mise à jour…">
                         Mettre à jour
-                      </button>
+                      </PendingButton>
                     </form>
                   </div>
                 ))}
@@ -413,10 +414,10 @@ export default async function SupplierDashboard() {
                 Paiement par Wave ou Orange Money vers le compte enregistré dans votre profil.
               </p>
               <form action={requestPayoutAction} className="mt-3">
-                <button type="submit" className={buttonClass("primary", "md", "w-full")}>
+                <PendingButton className="w-full" pendingLabel="Envoi…">
                   <Icon name="send" className="text-lg" />
                   Demander un reversement
-                </button>
+                </PendingButton>
               </form>
               <ButtonLink href="/fournisseur/paiements" variant="ghost" size="sm" className="mt-1 w-full">
                 Historique des reversements

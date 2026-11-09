@@ -16,6 +16,7 @@ import {
   recordPaymentAction,
   setPayoutStatusAction,
 } from "@/lib/actions/admin";
+import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Paiements" };
 
@@ -114,9 +115,9 @@ export default async function AdminPaymentsPage() {
                             className="input h-8 w-28 text-[11px]"
                             aria-label="Référence du paiement"
                           />
-                          <button type="submit" className={buttonClass("primary", "sm")}>
+                          <PendingButton size="sm" pendingLabel="…">
                             Payé
-                          </button>
+                          </PendingButton>
                         </form>
                       ) : (
                         <p className="text-right text-[11px] text-on-surface-variant">
@@ -184,17 +185,17 @@ export default async function AdminPaymentsPage() {
                           className="input h-9 min-w-40 flex-1 text-[11px]"
                           aria-label="Référence du virement"
                         />
-                        <button type="submit" className={buttonClass("primary", "sm")}>
+                        <PendingButton size="sm" pendingLabel="Envoi…">
                           <Icon name="check" className="text-base" />
                           Marquer payé
-                        </button>
+                        </PendingButton>
                       </form>
                       <form action={setPayoutStatusAction}>
                         <input type="hidden" name="payoutId" value={payout.id} />
                         <input type="hidden" name="status" value={payout.status === "BLOCKED" ? "PENDING" : "BLOCKED"} />
-                        <button type="submit" className={buttonClass("outline", "sm", payout.status === "BLOCKED" ? "" : "text-[#a8421a]")}>
+                        <PendingButton variant="outline" size="sm" className={payout.status === "BLOCKED" ? "" : "text-[#a8421a]"} pendingLabel="…">
                           {payout.status === "BLOCKED" ? "Débloquer" : "Bloquer"}
-                        </button>
+                        </PendingButton>
                       </form>
                     </>
                   ) : (

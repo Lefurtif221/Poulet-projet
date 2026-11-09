@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
 import { Card, Icon, buttonClass } from "@/components/ui";
 import { updateSettingsAction } from "@/lib/actions/admin";
+import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Paramètres" };
 
@@ -234,10 +235,10 @@ export default async function AdminSettingsPage() {
             Les modifications s&apos;appliquent aux nouvelles commandes. Un prix déjà confirmé ne change
             jamais.
           </p>
-          <button type="submit" className={buttonClass("primary")}>
+          <PendingButton pendingLabel="Enregistrement…">
             <Icon name="save" className="text-lg" />
             Enregistrer les paramètres
-          </button>
+          </PendingButton>
         </div>
       </form>
 

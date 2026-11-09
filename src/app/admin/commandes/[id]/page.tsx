@@ -11,9 +11,9 @@ import {
   DeliveryBadge,
   Icon,
   StatusBadge,
-  buttonClass,
 } from "@/components/ui";
 import { OrderTimeline } from "@/components/orders/order-timeline";
+import { PendingButton } from "@/components/forms/pending-button";
 import {
   changeOrderStatusAction,
   reassignOrderAction,
@@ -178,10 +178,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                     </option>
                   ))}
                 </select>
-                <button type="submit" className={buttonClass("primary", "sm", "w-full")}>
+                <PendingButton size="sm" className="w-full" pendingLabel="Application…">
                   <Icon name="sync_alt" className="text-base" />
                   Appliquer
-                </button>
+                </PendingButton>
               </form>
 
               <form action={reassignOrderAction} className="space-y-2 rounded-lg border border-outline-variant/40 p-3">
@@ -196,10 +196,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                     </option>
                   ))}
                 </select>
-                <button type="submit" className={buttonClass("secondary", "sm", "w-full")}>
+                <PendingButton variant="secondary" size="sm" className="w-full" pendingLabel="Réassignation…">
                   <Icon name="swap_horiz" className="text-base" />
                   Réassigner
-                </button>
+                </PendingButton>
               </form>
             </div>
           </Card>
@@ -261,10 +261,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <button type="submit" className={buttonClass("primary", "sm", "w-full")}>
+                <PendingButton size="sm" className="w-full" pendingLabel="Enregistrement…">
                   <Icon name="save" className="text-base" />
                   Enregistrer la livraison
-                </button>
+                </PendingButton>
               </div>
             </form>
           </Card>
@@ -314,10 +314,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                     <input id="adminNote" name="adminNote" className="input" placeholder="Constat, accord des parties…" />
                   </div>
                   <div className="sm:col-span-2">
-                    <button type="submit" className={buttonClass("danger", "sm", "w-full")}>
+                    <PendingButton variant="danger" size="sm" className="w-full" pendingLabel="Clôture…">
                       <Icon name="gavel" className="text-base" />
                       Trancher et clôturer
-                    </button>
+                    </PendingButton>
                   </div>
                 </form>
               ) : (
@@ -379,10 +379,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
               <form action={recordPaymentAction} className="mt-3 space-y-2">
                 <input type="hidden" name="paymentId" value={payment.id} />
                 <input name="reference" className="input h-9 text-xs" placeholder="Réf. Wave / OM / reçu" />
-                <button type="submit" className={buttonClass("primary", "sm", "w-full")}>
+                <PendingButton size="sm" className="w-full" pendingLabel="Confirmation…">
                   <Icon name="check_circle" className="text-base" />
                   Marquer comme payé
-                </button>
+                </PendingButton>
               </form>
             ) : (
               <Alert tone="success">Paiement confirmé.</Alert>
