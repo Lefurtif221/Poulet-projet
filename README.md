@@ -170,8 +170,8 @@ Points de vigilance :
 - **Dépassement** : les quotas gratuits suspendent le service au lieu de facturer.
 - **Vercel Hobby** est réservé à un usage non commercial ; passer à Pro quand l'activité
   devient réellement commerciale.
-- **Latence** : les fonctions sont placées près de la base (`iad1` actuellement, Neon en Ohio).
-  L'idéal reste Neon + fonctions à Paris (`eu-west-3` / `cdg1`) pour les utilisateurs de Dakar.
+- **Latence** : Neon est à Francfort (`eu-central-1`) et les fonctions Vercel à Paris (`cdg1`),
+  soit ~10 ms entre les deux. C'est le meilleur compromis disponible pour Dakar.
 
 ### Alternative VPS
 
