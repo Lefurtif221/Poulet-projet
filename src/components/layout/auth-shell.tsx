@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "@/components/ui";
+import { Icon, Logo } from "@/components/ui";
 
 export function AuthShell({
   title,
@@ -23,16 +23,8 @@ export function AuthShell({
           }}
         />
         <div className="relative">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-              <Icon name="egg_alt" className="text-2xl text-secondary-container" filled />
-            </span>
-            <span className="leading-tight">
-              <span className="block font-display text-lg font-bold">Guanar Life</span>
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-primary-fixed">
-                Marché avicole B2B
-              </span>
-            </span>
+          <Link href="/" className="inline-flex items-center">
+            <Logo light full />
           </Link>
         </div>
 
@@ -70,11 +62,8 @@ export function AuthShell({
 
       <main id="contenu" className="flex min-h-screen flex-col">
         <div className="flex items-center justify-between border-b border-outline-variant/30 px-4 py-4 lg:hidden">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-container text-white">
-              <Icon name="egg_alt" className="text-lg" filled />
-            </span>
-            <span className="font-display text-sm font-bold">Guanar Life</span>
+          <Link href="/" className="flex items-center">
+            <Logo />
           </Link>
           <span className="text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">
             Espace professionnel
@@ -91,7 +80,7 @@ export function AuthShell({
         </div>
 
         <div className="px-4 py-4 text-center text-[11px] text-on-surface-variant">
-          © {new Date().getFullYear()} Guanar Life · Dakar, Sénégal
+          © {new Date().getFullYear()} SunuVolaille · Dakar, Sénégal
         </div>
       </main>
     </div>

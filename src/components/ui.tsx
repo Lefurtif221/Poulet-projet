@@ -276,18 +276,36 @@ export function Field({
   );
 }
 
-export function Logo({ light = false }: { light?: boolean }) {
+export function Logo({
+  light = false,
+  full = false,
+}: {
+  light?: boolean;
+  full?: boolean;
+}) {
   return (
     <span className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-container text-white">
-        <Icon name="egg_alt" className="text-xl" filled />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0C3B26] ring-1 ring-[#E8A33D]/70">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/emblem.svg" alt="" className="h-8 w-8" />
       </span>
-      <span className="leading-tight">
-        <span className={cn("block font-display text-[15px] font-bold tracking-tight", light ? "text-white" : "text-on-surface")}>
-          Guanar Life
+      <span className="min-w-0 leading-none">
+        <span className="flex items-center gap-1.5">
+          <span className="whitespace-nowrap font-sans text-[17px] font-extrabold tracking-[-0.03em]">
+            <span className={light ? "text-white" : "text-[#0E5A38]"}>Sunu</span>
+            <span className={light ? "text-white" : "text-[#152033]"}>Volaille</span>
+          </span>
+          <span className="rounded-md bg-[#E8A33D] px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-[#0C3B26]">
+            PRO
+          </span>
         </span>
-        <span className={cn("block text-[10px] font-semibold uppercase tracking-widest", light ? "text-primary-fixed" : "text-on-surface-variant")}>
-          Marché avicole B2B
+        <span
+          className={cn(
+            "mt-1 block whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.16em]",
+            light ? "text-primary-fixed" : "text-on-surface-variant"
+          )}
+        >
+          {full ? "Filière avicole directe • Dakar & Niayes" : "Filière avicole directe"}
         </span>
       </span>
     </span>

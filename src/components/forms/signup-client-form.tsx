@@ -68,7 +68,7 @@ export function SignupClientForm({ districts }: { districts: string[] }) {
       </div>
 
       <p className="text-xs text-on-surface-variant">
-        Votre compte sera actif après vérification par l&apos;équipe Guanar Life. Vous recevrez une
+        Votre compte sera actif après vérification par l&apos;équipe SunuVolaille. Vous recevrez une
         confirmation par WhatsApp ou SMS.
       </p>
 

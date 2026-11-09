@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatFCFA, formatPhone } from "@/lib/format";
 import { PAYMENT_METHOD, PRODUCT_UNIT } from "@/lib/labels";
-import { Icon } from "@/components/ui";
+import { Icon, Logo } from "@/components/ui";
 import { PrintButton } from "@/components/orders/print-button";
 
 export const metadata: Metadata = { title: "Facture" };
@@ -43,15 +43,9 @@ export default async function InvoicePage({ params }: { params: Params }) {
 
       <article className="mx-auto max-w-3xl bg-white p-8 shadow-sm print:max-w-none print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/40 pb-5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-container text-white">
-              <Icon name="egg_alt" className="text-2xl" filled />
-            </span>
-            <div>
-              <p className="font-display text-xl font-bold">{settings.platformName}</p>
-              <p className="text-xs text-on-surface-variant">Marché avicole B2B · Dakar, Sénégal</p>
-              <p className="text-xs text-on-surface-variant">{formatPhone(settings.supportPhone)}</p>
-            </div>
+          <div>
+            <Logo />
+            <p className="mt-2 text-xs text-on-surface-variant">Dakar, Sénégal · {formatPhone(settings.supportPhone)}</p>
           </div>
           <div className="text-right">
             <p className="font-display text-lg font-bold">FACTURE</p>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SunuVolaille Pro">
+  <rect width="512" height="512" rx="104" fill="#0C3B26"/>
+  <rect x="7" y="7" width="498" height="498" rx="97" fill="none" stroke="#E8A33D" stroke-width="6" opacity="0.85"/>
+  <g transform="translate(96 52) scale(1.6)">
+    <path d="M50 146 C74 134 126 134 150 146 C128 157 72 157 50 146 Z" fill="#E8A33D"/>
+    <path d="M57 97 C50 68 71 45 93 47 C116 49 128 71 123 96 C118 124 100 140 82 136 C65 132 61 115 57 97 Z" fill="#FFFFFF"/>
+    <path d="M77 82 C87 71 102 75 107 88 C112 103 99 114 87 110 C75 106 70 93 77 82 Z" fill="#0C3B26"/>
+    <ellipse cx="134" cy="106" rx="24" ry="29" fill="#E8A33D"/>
+    <ellipse cx="130" cy="102" rx="15" ry="20" fill="#FFFFFF"/>
+    <circle cx="81" cy="53" r="9" fill="#E8A33D"/>
+    <circle cx="95" cy="45" r="11" fill="#E8A33D"/>
+    <circle cx="109" cy="53" r="9" fill="#E8A33D"/>
+    <path d="M113 62 L137 69 L115 79 Z" fill="#E8A33D"/>
+    <circle cx="101" cy="67" r="3.2" fill="#0C3B26"/>
+  </g>
+  <rect x="171" y="406" width="170" height="58" rx="29" fill="#E8A33D"/>
+  <text x="256" y="447" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="800" letter-spacing="3" fill="#0C3B26">PRO</text>
+</svg>

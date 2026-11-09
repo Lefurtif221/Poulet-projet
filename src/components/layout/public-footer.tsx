@@ -6,7 +6,7 @@ export function PublicFooter() {
     <footer className="mt-12 border-t border-outline-variant/30 bg-surface-container-low">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-4 md:px-6">
         <div>
-          <Logo />
+          <Logo full />
           <p className="mt-3 max-w-xs text-sm text-on-surface-variant">
             Approvisionnement direct des restaurants et traiteurs de Dakar auprès des éleveurs de la
             presqu&apos;île et des Niayes.
@@ -57,7 +57,7 @@ export function PublicFooter() {
       </div>
       <div className="border-t border-outline-variant/30 px-4 py-4">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 text-[11px] text-on-surface-variant">
-          <span>© {new Date().getFullYear()} Guanar Life · Dakar, Sénégal</span>
+          <span>© {new Date().getFullYear()} SunuVolaille · Dakar, Sénégal</span>
           <span>Prix en FCFA · TVA selon réglementation en vigueur</span>
         </div>
       </div>

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Guanar Life — Marché B2B avicole",
-    short_name: "Guanar Life",
+    name: "SunuVolaille — Marché B2B avicole",
+    short_name: "SunuVolaille",
     description:
       "Commandez poulets et œufs directement auprès des éleveurs de Dakar. Livraison fraîche, paiement sécurisé, crédit B2B.",
     start_url: "/",

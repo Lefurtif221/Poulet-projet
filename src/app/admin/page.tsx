@@ -113,7 +113,7 @@ export default async function AdminDashboard() {
             Supervision opérationnelle
           </p>
           <h1 className="mt-2 font-display text-2xl font-bold tracking-tight">
-            Cockpit de pilotage Guanar Life
+            Cockpit de pilotage SunuVolaille
           </h1>
           <p className="text-sm text-on-surface-variant">
             GMV, marge, ponctualité, impayés et arbitrage des litiges en un seul écran.

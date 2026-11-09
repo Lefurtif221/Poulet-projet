@@ -9,7 +9,7 @@ export default function PendingPage() {
   return (
     <AuthShell
       title="Votre demande est bien reçue"
-      subtitle="L'équipe Guanar Life vérifie vos informations avant d'activer votre compte."
+      subtitle="L'équipe SunuVolaille vérifie vos informations avant d'activer votre compte."
       footer={
         <div className="flex flex-col gap-2 text-center">
           <Link href="/" className="link">

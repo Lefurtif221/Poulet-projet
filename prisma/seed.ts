@@ -58,7 +58,7 @@ async function main() {
 
   const admin = await upsertUser({
     phone: "+221770000000",
-    name: "Administrateur Guanar",
+    name: "Administrateur SunuVolaille",
     role: "ADMIN",
     status: "ACTIVE",
   });

@@ -17,17 +17,21 @@ const grotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: {
-    default: "Guanar Life — Marché B2B avicole Dakar",
-    template: "%s · Guanar Life",
+    default: "SunuVolaille — Marché B2B avicole Dakar",
+    template: "%s · SunuVolaille",
   },
   description:
     "Plateforme B2B de mise en relation directe entre éleveurs avicoles et restaurants, fast-foods et traiteurs de Dakar. Poulets et œufs livrés frais.",
-  applicationName: "Guanar Life",
+  applicationName: "SunuVolaille",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Guanar Life" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "SunuVolaille" },
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

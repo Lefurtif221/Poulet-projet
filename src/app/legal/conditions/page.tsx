@@ -12,7 +12,7 @@ export default function LegalTermsPage() {
         <section>
           <h2 className="font-display text-lg font-semibold text-on-surface">1. Objet</h2>
           <p className="mt-1">
-            Guanar Life met en relation des éleveurs avicoles vérifiés et des clients professionnels
+            SunuVolaille met en relation des éleveurs avicoles vérifiés et des clients professionnels
             (restaurants, fast-foods, traiteurs, hôtels, cantines) pour la vente de poulets et d&apos;œufs
             à Dakar et dans les Niayes. La plateforme organise la commande, la livraison, le paiement et
             le crédit.

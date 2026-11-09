@@ -194,7 +194,7 @@ export function TopNavShell({
             </span>
             <span className="hidden items-center gap-1 sm:flex">
               <Icon name="verified" className="text-sm text-primary-fixed" />
-              Compte vérifié par Guanar Life
+              Compte vérifié par SunuVolaille
             </span>
           </div>
         </div>

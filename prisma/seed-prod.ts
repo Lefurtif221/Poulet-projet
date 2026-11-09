@@ -17,7 +17,7 @@ const DEFAULTS: Record<string, unknown> = {
   waveNumber: "+221 77 000 00 00",
   orangeMoneyNumber: "+221 77 000 00 00",
   supportPhone: "+221 77 000 00 00",
-  platformName: "Guanar Life",
+  platformName: "SunuVolaille",
 };
 
 async function main() {
@@ -40,7 +40,7 @@ async function main() {
     where: { phone },
     create: {
       phone,
-      name: process.env.ADMIN_NAME ?? "Administrateur Guanar",
+      name: process.env.ADMIN_NAME ?? "Administrateur SunuVolaille",
       role: "ADMIN",
       status: "ACTIVE",
       pinHash,

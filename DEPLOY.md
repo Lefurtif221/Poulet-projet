@@ -28,7 +28,7 @@ $env:DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx-pooler.eu-west-3.aws.neon.
 $env:DIRECT_URL="postgresql://USER:PASSWORD@ep-xxxx.eu-west-3.aws.neon.tech/neondb?sslmode=require"
 $env:ADMIN_PHONE="+221XXXXXXXXX"
 $env:ADMIN_PIN="un-pin-solide-4-a-6-chiffres"
-$env:ADMIN_NAME="Administrateur Guanar"
+$env:ADMIN_NAME="Administrateur SunuVolaille"
 
 npx prisma migrate deploy
 npx tsx prisma/seed-prod.ts

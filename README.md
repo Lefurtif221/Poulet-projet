@@ -1,4 +1,4 @@
-# Guanar Life — Marché B2B avicole Dakar
+# SunuVolaille — Marché B2B avicole Dakar
 
 Plateforme de mise en relation directe entre éleveurs avicoles et clients professionnels
 (restaurants, fast-foods, rôtisseries, traiteurs, hôtels, cantines) à Dakar et dans les Niayes.

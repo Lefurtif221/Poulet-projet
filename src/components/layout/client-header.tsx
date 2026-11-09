@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icon } from "@/components/ui";
+import { Icon, Logo } from "@/components/ui";
 import { formatFCFA } from "@/lib/format";
 import { CartCount } from "@/components/layout/cart-count";
 import { logoutAction } from "@/lib/actions/auth";
@@ -55,17 +55,7 @@ export function ClientHeader({
       <div className="border-b border-outline-variant/30 bg-surface/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
           <Link href="/client/catalogue" className="shrink-0">
-            <span className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-container text-white">
-                <Icon name="egg_alt" filled />
-              </span>
-              <span className="hidden leading-tight sm:block">
-                <span className="block font-display text-[15px] font-bold">Guanar Life</span>
-                <span className="block text-[10px] font-semibold uppercase tracking-widest text-on-surface-variant">
-                  Marché avicole B2B
-                </span>
-              </span>
-            </span>
+            <Logo />
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">

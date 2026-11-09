@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       roleLabel="Administration"
       userName={user.name}
       userSubtitle={user.phone}
-      title="Guanar Life Admin"
+      title="SunuVolaille Admin"
     >
       {children}
     </SidebarShell>

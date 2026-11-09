@@ -19,7 +19,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
       <footer className="border-t border-outline-variant/30 px-4 py-4 text-center text-[11px] text-on-surface-variant">
-        © {new Date().getFullYear()} Guanar Life · Dakar, Sénégal
+        © {new Date().getFullYear()} SunuVolaille · Dakar, Sénégal
       </footer>
     </div>
   );
