@@ -147,4 +147,6 @@ Soulagement : passer à Neon Launch (à l'usage) ou réduire les crons/keep-aliv
 - Vercel Hobby est prévu pour un usage non commercial ; passer à Pro quand l'activité
   devient commerciale.
 - Les quotas gratuits suspendent le service au lieu de facturer.
-- La région Paris (`cdg1` pour Vercel, `eu-west-3` pour Neon) limite la latence depuis Dakar.
+- La région des fonctions doit être proche de celle de Neon. Le projet actuel utilise `iad1`
+  (fonctions) avec Neon en Ohio. Le meilleur compromis pour Dakar reste Neon + fonctions à Paris
+  (`eu-west-3` / `cdg1`).
