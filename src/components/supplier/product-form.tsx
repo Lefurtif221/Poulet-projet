@@ -102,12 +102,26 @@ export function ProductForm({ product }: { product?: Product }) {
         />
       </Field>
 
-      <Field label="Photo (URL)" htmlFor="imageUrl" hint="Lien vers une photo compressée. L'upload direct arrive en V2.">
+      <Field
+        label="Photo du produit"
+        htmlFor="photo"
+        hint="JPEG, PNG ou WebP · 3 Mo maximum. Si tu ajoutes une photo, elle remplace l'URL ci-dessous."
+      >
+        <input
+          id="photo"
+          name="photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="input file:mr-3 file:rounded-md file:border-0 file:bg-surface-container file:px-3 file:py-1.5 file:text-xs file:font-semibold"
+        />
+      </Field>
+
+      <Field label="Ou URL d'image (optionnel)" htmlFor="imageUrl">
         <input
           id="imageUrl"
           name="imageUrl"
           type="url"
-          defaultValue={product?.imageUrl ?? ""}
+          defaultValue={product?.imageUrl && !product.imageUrl.startsWith("/images/") ? product.imageUrl : ""}
           placeholder="https://…"
           className="input"
         />

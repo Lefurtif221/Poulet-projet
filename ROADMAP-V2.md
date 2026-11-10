@@ -50,6 +50,9 @@ Objectif : pouvoir encaisser et livrer sans risque opérationnel.
 | 0.9 | Poids/quantité livrés + ajustement facture | Écarts de poids fréquents | 2 j |
 | 0.10 | CGU/CGV, contrats éleveurs, CDP, assurance | Vendre légalement | externe |
 
+**Déjà livré dans V2.0** : CI GitHub Actions, workflow de sauvegarde quotidienne (secrets S3 à
+configurer), facture PDF téléchargeable, upload photo produit.
+
 **Critère de sortie** : une commande réelle peut être payée manuellement, livrée, facturée, sauvegardée et auditée sans intervention technique.
 
 ### V2.1 — Réduire le manuel sans API (P0/P1)

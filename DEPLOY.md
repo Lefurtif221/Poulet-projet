@@ -98,6 +98,26 @@ Réponse attendue : `autoClosed`, `count`, `results`. Sans le bon secret : HTTP 
 - Chez le registrar : suivre les enregistrements DNS indiqués (A / CNAME).
 - HTTPS est généré automatiquement.
 
+## 6 bis. CI et sauvegardes automatiques
+
+- **CI** : `.github/workflows/ci.yml` exécute typecheck, lint et build à chaque push.
+- **Sauvegarde** : `.github/workflows/backup.yml` fait un `pg_dump` quotidien à 02:00 UTC,
+  le chiffre avec GPG et l'envoie vers un stockage S3-compatible.
+
+Secrets GitHub à créer (`Settings → Secrets and variables → Actions`) :
+
+| Secret | Valeur |
+|---|---|
+| `BACKUP_DATABASE_URL` | URL **directe** Neon (pas la poolée) |
+| `BACKUP_GPG_PASSPHRASE` | phrase de passe longue pour le chiffrement |
+| `BACKUP_S3_ENDPOINT` | endpoint R2 / Neon Object Storage |
+| `BACKUP_S3_BUCKET` | nom du bucket |
+| `BACKUP_S3_ACCESS_KEY_ID` | clé d'accès S3 |
+| `BACKUP_S3_SECRET_ACCESS_KEY` | secret S3 |
+
+Test de restauration : `gpg -d fichier.dump.gpg > fichier.dump`, puis
+`pg_restore --clean --no-owner -d "$DIRECT_URL" fichier.dump`.
+
 ## 7. Sauvegardes (Phase 0)
 
 Neon Free fournit 6 h de restauration et 1 snapshot manuel. Pour le pilote :

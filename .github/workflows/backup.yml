@@ -1,0 +1,42 @@
+name: Sauvegarde base de données
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dump PostgreSQL
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          mkdir -p backup
+          docker run --rm \
+            -v "${{ github.workspace }}/backup:/backup" \
+            -e DATABASE_URL="$DATABASE_URL" \
+            postgres:18 \
+            sh -c 'pg_dump "$DATABASE_URL" -Fc -f /backup/sunuvolaille.dump'
+
+      - name: Chiffrer
+        env:
+          BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --passphrase "$BACKUP_GPG_PASSPHRASE" \
+            -c backup/sunuvolaille.dump
+          rm backup/sunuvolaille.dump
+
+      - name: Envoyer vers S3 / R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          BACKUP_S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+        run: |
+          aws s3 cp backup/sunuvolaille.dump.gpg \
+            "s3://$BACKUP_S3_BUCKET/backups/sunuvolaille-$(date +%Y%m%d-%H%M).dump.gpg" \
+            --endpoint-url "$BACKUP_S3_ENDPOINT"

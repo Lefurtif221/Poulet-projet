@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatFCFA, formatPhone } from "@/lib/format";
 import { PAYMENT_METHOD, PRODUCT_UNIT } from "@/lib/labels";
-import { Icon, Logo } from "@/components/ui";
+import { Icon, Logo, buttonClass } from "@/components/ui";
 import { PrintButton } from "@/components/orders/print-button";
 
 export const metadata: Metadata = { title: "Facture" };
@@ -38,7 +38,13 @@ export default async function InvoicePage({ params }: { params: Params }) {
           <Icon name="arrow_back" className="text-lg" />
           Retour au suivi
         </Link>
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          <a href={`/api/facture/${order.id}`} className={buttonClass("primary", "md")}>
+            <Icon name="download" className="text-lg" />
+            Télécharger le PDF
+          </a>
+          <PrintButton />
+        </div>
       </div>
 
       <article className="mx-auto max-w-3xl bg-white p-8 shadow-sm print:max-w-none print:shadow-none">

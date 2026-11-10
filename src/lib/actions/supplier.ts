@@ -72,6 +72,16 @@ export async function createProductAction(
   const parsed = productSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
+  let imageUrl = parsed.data.imageUrl?.trim() || null;
+  const photo = formData.get("photo");
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      imageUrl = await saveImage(photo);
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Photo invalide." };
+    }
+  }
+
   const product = await db.product.create({
     data: {
       supplierId: supplier.id,
@@ -81,7 +91,7 @@ export async function createProductAction(
       price: parsed.data.price,
       stock: parsed.data.stock,
       description: parsed.data.description || null,
-      imageUrl: parsed.data.imageUrl || null,
+      imageUrl,
       availableFrom: parsed.data.availableFrom ? new Date(`${parsed.data.availableFrom}T08:00:00Z`) : null,
     },
   });
@@ -111,6 +121,16 @@ export async function updateProductAction(
   const parsed = productSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
+  let imageUrl = parsed.data.imageUrl?.trim() || existing.imageUrl;
+  const photo = formData.get("photo");
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      imageUrl = await saveImage(photo);
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Photo invalide." };
+    }
+  }
+
   await db.product.update({
     where: { id: productId },
     data: {
@@ -120,7 +140,7 @@ export async function updateProductAction(
       price: parsed.data.price,
       stock: parsed.data.stock,
       description: parsed.data.description || null,
-      imageUrl: parsed.data.imageUrl || null,
+      imageUrl,
       availableFrom: parsed.data.availableFrom
         ? new Date(`${parsed.data.availableFrom}T08:00:00Z`)
         : null,
