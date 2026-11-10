@@ -52,20 +52,22 @@ Objectif : pouvoir encaisser et livrer sans risque opérationnel.
 
 **Critère de sortie** : une commande réelle peut être payée manuellement, livrée, facturée, sauvegardée et auditée sans intervention technique.
 
-### V2.1 — Réduire le manuel (P0/P1)
+### V2.1 — Réduire le manuel sans API (P0/P1)
 
 Déclencheurs : **> 100 notifications/semaine**, **> 15 min d'admin par commande**.
 
+> WhatsApp Business API est reportée en V3. En V2, on garde la file d'attente et le lien `wa.me`,
+> mais on standardise les messages et on assiste les relances.
+
 | # | Fonction | Détail |
 |---|---|---|
-| 1.1 | WhatsApp Business API | Templates commande, confirmation, prête, livrée, paiement, crédit |
-| 1.2 | Opt-in et heures de silence | Conformité, pas de messages entre 21 h et 6 h |
-| 1.3 | File d'envoi automatique | Reprise sur échec, statut envoyé/échoué |
-| 1.4 | Relances crédit automatiques | J-2, jour J, J+3, blocage J+7 |
-| 1.5 | Reçus et relevés | Reçu de paiement, relevé de crédit |
-| 1.6 | Clôture de caisse quotidienne | Espèces, Wave, OM, crédit |
-| 1.7 | Lots de reversements éleveurs | Préparer un lot, double validation, marquer payé |
-| 1.8 | Journal financier non modifiable | Traçabilité comptable |
+| 1.1 | Templates de messages | Modèles courts : commande, confirmation, prête, livrée, paiement, crédit |
+| 1.2 | File WhatsApp manuelle | L'admin ouvre `wa.me`, envoie, marque « envoyé » |
+| 1.3 | Relances crédit assistées | Liste des échéances, message prérempli, statut « relancé » |
+| 1.4 | Reçus et relevés | Reçu de paiement, relevé de crédit |
+| 1.5 | Clôture de caisse quotidienne | Espèces, Wave, OM, crédit |
+| 1.6 | Lots de reversements éleveurs | Préparer un lot, double validation, marquer payé |
+| 1.7 | Journal financier non modifiable | Traçabilité comptable |
 
 ### V2.2 — Logistique (P1)
 
@@ -96,6 +98,73 @@ Déclencheurs : **> 20 livraisons/semaine**, retards > 10 %, ou plus de 2 livreu
 | 3.8 | Autres produits (poisson, légumes, viande) | Rétention stable volaille |
 | 3.9 | Wolof vocal / messages vocaux | Retours utilisateurs |
 
+### Comment fonctionne le score de crédit (V2.3)
+
+Le score **ne décide pas** : il aide l'admin à proposer un plafond et un délai. Aucune augmentation
+automatique avant 3 mois de données.
+
+**Données analysées sur 90 jours**
+
+- taux de paiement à l'échéance ;
+- retard moyen et retard maximum ;
+- nombre de factures échues et montant ;
+- nombre de commandes, régularité, panier moyen ;
+- litiges et décisions défavorables ;
+- utilisation du plafond (encours / plafond) ;
+- ancienneté, type d'activité, NINEA.
+
+**Barème sur 100 points**
+
+| Bloc | Points | Calcul |
+|---|---|---|
+| Paiement | 50 | 35 × taux à l'heure + 15 × (1 - min(retard moyen / 15, 1)) |
+| Volume et régularité | 20 | 20 × min(commandes / 10, 1) |
+| Litiges | 15 | 15 × (1 - taux de litige défavorable) |
+| Utilisation du crédit | 10 | 10 × (1 - encours / plafond) |
+| Ancienneté et profil | 5 | 5 × min(mois / 12, 1) |
+
+**Tiers proposés**
+
+| Score | Tier | Plafond suggéré | Délai |
+|---|---|---|---|
+| 80–100 | A | jusqu'à 500 000 FCFA | 14–30 jours |
+| 60–79 | B | 150 000–300 000 FCFA | 7–14 jours |
+| 40–59 | C | 50 000–100 000 FCFA | 7 jours |
+| < 40 | D | 0 (comptant) | — |
+
+Les montants sont des hypothèses de départ, toujours plafonnées par le fonds de roulement global.
+
+**Règles dures (prioritaires sur le score)**
+
+- une facture de plus de 7 jours de retard bloque le crédit ;
+- 2 litiges défavorables sur 90 jours gèlent le crédit ;
+- encours ≥ plafond : blocage ;
+- nouveau client : crédit d'essai manuel (ex. 50 000 FCFA) sur 2 cycles, sans score.
+
+**Garde-fous**
+
+- le score **suggère**, l'admin valide avec un motif tracé ;
+- plafond global de la plateforme = fonds de roulement maximum accepté ;
+- aucun client ne peut consommer plus de X % du fonds (ex. 10 %) ;
+- recalcul après chaque paiement, commande ou litige ;
+- snapshot historique conservé pour expliquer une décision ;
+- décision explicable et contestable par le client.
+
+**Exemple**
+
+12 commandes sur 90 jours, 1,5 jour de retard moyen, aucun litige, 60 % d'utilisation
+→ ~78/100 (tier B) → plafond suggéré 200 000 FCFA, 10 jours.
+
+3 commandes, 2 factures à +10 jours, 1 litige défavorable
+→ ~35/100 (tier D) → comptant uniquement.
+
+**Implémentation**
+
+- table `CreditScoreSnapshot` : client, score, tier, composantes JSON, date ;
+- calcul à la demande et job nocturne ;
+- écran admin : score, détail des composantes, plafond suggéré, bouton « appliquer » avec motif ;
+- aucune modification automatique du plafond en V2.
+
 ---
 
 ## 4. V3 — Paiements et automatisation financière
@@ -106,17 +175,21 @@ Déclencheurs : **> 30 paiements/semaine**, **> 10 reversements/semaine**, ou pl
 
 | # | Fonction |
 |---|---|
-| 4.1 | Paiement Wave / Orange Money / carte via agrégateur (PayDunya, PayTech, CinetPay) |
-| 4.2 | Webhooks et confirmation automatique |
-| 4.3 | Rapprochement automatique paiement ↔ commande |
-| 4.4 | Remboursements et avoirs automatiques |
-| 4.5 | Reversements éleveurs automatisés par lot |
-| 4.6 | Relevés de crédit et relances sans intervention |
-| 4.7 | Export comptable automatisé |
-| 4.8 | Score de crédit enrichi, financement éleveurs, prévision de demande |
-| 4.9 | Autres villes (Thiès, Mbour, Saint-Louis) |
+| 4.1 | WhatsApp Business API + SMS de secours |
+| 4.2 | Templates validés, opt-in, heures de silence |
+| 4.3 | Relances et notifications automatiques (crédit, commande, paiement) |
+| 4.4 | Paiement Wave / Orange Money / carte via agrégateur (PayDunya, PayTech, CinetPay) |
+| 4.5 | Webhooks et confirmation automatique |
+| 4.6 | Rapprochement automatique paiement ↔ commande |
+| 4.7 | Remboursements et avoirs automatiques |
+| 4.8 | Reversements éleveurs automatisés par lot |
+| 4.9 | Relevés de crédit et relances sans intervention |
+| 4.10 | Export comptable automatisé |
+| 4.11 | Score de crédit enrichi, financement éleveurs, prévision de demande |
+| 4.12 | Autres villes (Thiès, Mbour, Saint-Louis) |
 
-Décisions à prendre avant V3 : frais, couverture Wave/OM, webhooks, délais de reversement, KYC, contrat agrégateur.
+Décisions à prendre avant V3 : fournisseur WhatsApp (Meta direct ou BSP), frais et couverture
+Wave/OM, webhooks, délais de reversement, KYC, contrat agrégateur.
 
 ---
 
@@ -125,13 +198,14 @@ Décisions à prendre avant V3 : frais, couverture Wave/OM, webhooks, délais de
 | Priorité | Chantier | Impact | Effort | Quand |
 |---|---|---|---|---|
 | P0 | V2.0 fiabilisation | Évite perte d'argent/données | 2–3 sem. | Maintenant |
-| P0 | WhatsApp API | Réactivité éleveurs | 1–2 sem. | 100 msg/sem. |
+| P0 | Templates + file WhatsApp manuelle | Réactivité sans API | 3 j | Maintenant |
 | P0 | Suivi manuel des paiements | Encaissement traçable | 1 sem. | Maintenant |
 | P1 | Crédit : relevés + relances | Impayés < 2 % | 2 sem. | 10 clients crédit |
 | P1 | Yango API + preuve livraison | Ponctualité > 90 % | 3–4 sem. | 20 livraisons/sem. |
 | P1 | App chauffeur PWA | Contrôle qualité | 3 sem. | API livraison en place |
 | P2 | Particuliers | Volume + écoulement | 4–6 sem. | Retards < 15 % |
 | P2 | Avis/scorecards | Qualité | 2 sem. | 100 commandes |
+| P3 | WhatsApp Business API | Automatisation des messages | 1–2 sem. | **V3**, 100 msg/sem. |
 | P3 | Paiement API, reversements auto | Réduction du manuel | 4–6 sem. | **V3**, > 30 paiements/sem. |
 | P3 | Autres produits/villes | Croissance | 6+ sem. | V3 |
 
@@ -144,7 +218,8 @@ Sauvegardes, monitoring, CI, staging, rate limiting, 2FA admin, facture PDF, pho
 Objectif : aucune commande réelle ne peut être perdue.
 
 ### Semaines 3–4 — Réduire le manuel
-WhatsApp API, templates, relances crédit, reçus/relevés, clôture de caisse, ajustement poids/quantité.
+Templates WhatsApp manuels, relances crédit assistées, reçus/relevés, clôture de caisse,
+ajustement poids/quantité. On prépare la V3 (choix du fournisseur WhatsApp) sans l'intégrer.
 Objectif : moins de 15 min d'admin par commande.
 
 ### Semaines 5–8 — Logistique
@@ -179,7 +254,7 @@ Tableau de bord admin V2 : cohortes, encours par ancienneté, marge par commande
 
 ## 8. Décisions à prendre avant les chantiers
 
-1. **WhatsApp** : Meta Cloud API directe ou BSP ? Coût par template, validation des modèles, opt-in.
+1. **WhatsApp (V3)** : Meta Cloud API directe ou BSP ? Coût par template, validation des modèles, opt-in.
 2. **Livraison** : Yango, Yassir, Gozem ou chauffeurs indépendants ? Zone, tarif, assurance, preuve.
 3. **Crédit** : plafond global que l'on accepte de perdre, procédure de recouvrement, document signé.
 4. **Sauvegardes** : Neon Launch (PITR) ou dump quotidien vers R2/stockage objet.
