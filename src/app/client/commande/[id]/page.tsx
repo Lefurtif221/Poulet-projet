@@ -12,9 +12,13 @@ import {
   Icon,
   PaymentBadge,
   StatusBadge,
+  buttonClass,
 } from "@/components/ui";
+import QRCode from "qrcode";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { DisputeForm } from "@/components/orders/dispute-form";
+import { PaymentProofForm } from "@/components/orders/payment-proof-form";
+import { CopyButton } from "@/components/ui/copy-button";
 import { cancelOrderAction, confirmReceiptAction, reorderAction } from "@/lib/actions/orders";
 import { PendingButton } from "@/components/forms/pending-button";
 
@@ -49,6 +53,13 @@ export default async function OrderDetailPage({
   const payment = order.payments[0];
   const isCredit = order.paymentMethod === "CREDIT";
   const alertError = first(query.erreur);
+  const payLink = order.paymentLink || settings.wavePaymentLink || null;
+  const waveLink = order.paymentMethod === "WAVE" ? payLink : null;
+  const canPayOnline =
+    ["WAVE", "ORANGE_MONEY", "BANK_TRANSFER"].includes(order.paymentMethod) &&
+    payment != null &&
+    ["PENDING", "DECLARED"].includes(payment.status);
+  const qrDataUrl = waveLink ? await QRCode.toDataURL(waveLink, { width: 180, margin: 1 }) : null;
 
   return (
     <div className="space-y-5">
@@ -278,19 +289,83 @@ export default async function OrderDetailPage({
                   </Alert>
                 </>
               ) : null}
-              {order.paymentMethod === "WAVE" && payment?.status === "PENDING" ? (
-                <Alert tone="info">
-                  Envoyez {formatFCFA(order.total)} au compte Wave marchand{" "}
-                  <strong>{formatPhone(settings.waveNumber)}</strong> en indiquant la référence{" "}
-                  {order.reference}.
-                </Alert>
-              ) : null}
-              {order.paymentMethod === "ORANGE_MONEY" && payment?.status === "PENDING" ? (
-                <Alert tone="info">
-                  Envoyez {formatFCFA(order.total)} au compte Orange Money{" "}
-                  <strong>{formatPhone(settings.orangeMoneyNumber)}</strong> en indiquant la référence{" "}
-                  {order.reference}.
-                </Alert>
+              {canPayOnline ? (
+                <div className="space-y-3">
+                  {payment?.status === "DECLARED" ? (
+                    <Alert tone="info" title="Paiement déclaré">
+                      Référence : {payment.reference ?? "—"}. Vérification en cours par
+                      l&apos;administrateur.
+                    </Alert>
+                  ) : null}
+
+                  {payment?.status === "PENDING" ? (
+                    <div className="space-y-2 rounded-lg border border-outline-variant/40 bg-surface-container-low p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-on-surface-variant">Montant à payer</span>
+                        <span className="money text-lg">{formatFCFA(order.total)}</span>
+                      </div>
+                      <p className="text-xs text-on-surface-variant">
+                        Référence : <strong className="text-on-surface">{order.reference}</strong>
+                        <CopyButton value={order.reference} />
+                      </p>
+
+                      {order.paymentMethod === "WAVE" ? (
+                        waveLink ? (
+                          <a
+                            href={waveLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={buttonClass("primary", "md", "w-full")}
+                          >
+                            <Icon name="arrow_forward" className="text-lg" />
+                            Payer avec Wave
+                          </a>
+                        ) : (
+                          <p className="text-xs text-on-surface-variant">
+                            Numéro Wave :{" "}
+                            <strong className="text-on-surface">{formatPhone(settings.waveNumber)}</strong>
+                            <CopyButton value={settings.waveNumber} />
+                          </p>
+                        )
+                      ) : null}
+
+                      {order.paymentMethod === "ORANGE_MONEY" ? (
+                        <p className="text-xs text-on-surface-variant">
+                          Numéro Orange Money :{" "}
+                          <strong className="text-on-surface">
+                            {formatPhone(settings.orangeMoneyNumber)}
+                          </strong>
+                          <CopyButton value={settings.orangeMoneyNumber} />
+                        </p>
+                      ) : null}
+
+                      {qrDataUrl ? (
+                        <div className="flex justify-center rounded-lg bg-white p-2">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={qrDataUrl} alt="QR code Wave" className="h-40 w-40" />
+                        </div>
+                      ) : null}
+
+                      {order.paymentMethod === "WAVE" && !waveLink ? (
+                        <p className="text-[10px] text-on-surface-variant">
+                          Astuce : l&apos;admin peut coller un lien Wave propre à cette commande
+                          depuis sa fiche.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {payment?.status === "PENDING" ? <PaymentProofForm orderId={order.id} /> : null}
+
+                  {payment?.status === "DECLARED" && payment.proofUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={payment.proofUrl}
+                      alt="Preuve de paiement"
+                      className="max-h-48 rounded-lg border border-outline-variant/40 object-cover"
+                    />
+                  ) : null}
+                </div>
               ) : null}
               {order.paymentMethod === "CASH_ON_DELIVERY" ? (
                 <Alert tone="info">À régler au livreur à la réception : {formatFCFA(order.total)}.</Alert>

@@ -37,6 +37,7 @@ export const PAYMENT_METHOD: Record<PaymentMethod, { label: string; short: strin
 
 export const PAYMENT_STATUS: Record<PaymentStatus, { label: string; tone: string }> = {
   PENDING: { label: "En attente", tone: "bg-amber-50 text-amber-700" },
+  DECLARED: { label: "Déclaré", tone: "bg-blue-50 text-blue-700" },
   PAID: { label: "Payé", tone: "bg-green-50 text-green-700" },
   FAILED: { label: "Échoué", tone: "bg-red-50 text-red-700" },
   REFUNDED: { label: "Remboursé", tone: "bg-slate-100 text-slate-600" },

@@ -102,6 +102,17 @@ réinitialise depuis Admin → Utilisateurs → PIN.
 3. Ajouter l'option dans `src/components/orders/checkout-form.tsx`.
 4. Gérer la confirmation dans Admin → Paiements (aujourd'hui manuelle).
 
+### Paiement Wave / Orange Money manuel
+
+1. L'admin crée un lien de paiement dans Wave Business pour le montant exact de la commande.
+2. Il colle ce lien dans la fiche commande admin (« Lien Wave de cette commande »).
+3. Le client voit « Payer avec Wave » + QR code, paie, puis déclare le paiement avec une
+   référence ou une capture.
+4. L'admin vérifie dans Wave / Orange Money, puis clique « Marquer comme payé ».
+5. La commande continue et le reversement éleveur est généré à la clôture.
+
+Sans lien, le client peut payer sur le numéro marchand avec la référence de commande.
+
 ### Notifications
 Les événements créent une entrée `Notification` (file d'attente WhatsApp/SMS). Admin →
 Notifications permet d'ouvrir le message dans WhatsApp (lien `wa.me`) puis de le marquer

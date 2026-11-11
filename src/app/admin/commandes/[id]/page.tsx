@@ -20,6 +20,7 @@ import {
   recordPaymentAction,
   resolveDisputeAction,
   saveDeliveryAction,
+  setOrderPaymentLinkAction,
 } from "@/lib/actions/admin";
 
 export const metadata: Metadata = { title: "Détail commande" };
@@ -374,19 +375,69 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                   {formatDate(order.creditDueDate)}
                 </p>
               ) : null}
+              {payment?.reference ? (
+                <p>
+                  <span className="text-on-surface-variant">Référence : </span>
+                  {payment.reference}
+                </p>
+              ) : null}
+              {payment?.declaredAt ? (
+                <p>
+                  <span className="text-on-surface-variant">Déclaré le : </span>
+                  {formatDateTime(payment.declaredAt)}
+                </p>
+              ) : null}
             </div>
-            {payment && payment.status === "PENDING" ? (
-              <form action={recordPaymentAction} className="mt-3 space-y-2">
+
+            {payment?.proofUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={payment.proofUrl}
+                alt="Preuve de paiement"
+                className="mt-2 max-h-48 w-full rounded-lg border border-outline-variant/40 object-cover"
+              />
+            ) : null}
+
+            <form action={setOrderPaymentLinkAction} className="mt-3 space-y-2 border-t border-outline-variant/30 pt-3">
+              <input type="hidden" name="orderId" value={order.id} />
+              <label className="field-label" htmlFor="paymentLink">
+                Lien Wave de cette commande
+              </label>
+              <input
+                id="paymentLink"
+                name="paymentLink"
+                type="url"
+                defaultValue={order.paymentLink ?? ""}
+                placeholder="https://pay.wave.com/…"
+                className="input h-9 text-xs"
+              />
+              <PendingButton variant="outline" size="sm" className="w-full" pendingLabel="Enregistrement…">
+                <Icon name="save" className="text-base" />
+                Enregistrer le lien Wave
+              </PendingButton>
+              <p className="text-[10px] text-on-surface-variant">
+                Crée le lien dans Wave Business pour le montant exact, puis colle-le ici. Le client
+                verra un bouton « Payer avec Wave ».
+              </p>
+            </form>
+
+            {payment && ["PENDING", "DECLARED"].includes(payment.status) ? (
+              <form action={recordPaymentAction} className="mt-3 space-y-2 border-t border-outline-variant/30 pt-3">
                 <input type="hidden" name="paymentId" value={payment.id} />
-                <input name="reference" className="input h-9 text-xs" placeholder="Réf. Wave / OM / reçu" />
+                <input
+                  name="reference"
+                  defaultValue={payment.reference ?? ""}
+                  className="input h-9 text-xs"
+                  placeholder="Réf. Wave / OM / reçu"
+                />
                 <PendingButton size="sm" className="w-full" pendingLabel="Confirmation…">
                   <Icon name="check_circle" className="text-base" />
                   Marquer comme payé
                 </PendingButton>
               </form>
-            ) : (
+            ) : payment?.status === "PAID" ? (
               <Alert tone="success">Paiement confirmé.</Alert>
-            )}
+            ) : null}
           </Card>
 
           <Card className="p-4">

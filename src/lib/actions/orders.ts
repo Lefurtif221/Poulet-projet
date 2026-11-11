@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { PaymentMethod } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
@@ -201,6 +202,82 @@ export async function disputeAction(
   }
 
   return { success: "Litige ouvert. L'administrateur vous contacte sous 48 h." };
+}
+
+export async function declarePaymentAction(
+  _prev: OrderActionState,
+  formData: FormData
+): Promise<OrderActionState> {
+  const user = await requireUser("CLIENT");
+  const orderId = String(formData.get("orderId") ?? "");
+  const reference = String(formData.get("reference") ?? "").trim();
+
+  const order = await db.order.findFirst({
+    where: { id: orderId, client: { userId: user.sub } },
+    include: { payments: true },
+  });
+  if (!order) return { error: "Commande introuvable." };
+  if (["CANCELLED", "REFUSED", "CLOSED"].includes(order.status)) {
+    return { error: "Cette commande ne peut plus recevoir de paiement." };
+  }
+  if (order.paymentStatus === "PAID") {
+    return { error: "Cette commande est déjà réglée." };
+  }
+  if (!["WAVE", "ORANGE_MONEY", "BANK_TRANSFER"].includes(order.paymentMethod)) {
+    return { error: "Ce mode de règlement ne nécessite pas de preuve en ligne." };
+  }
+
+  const payment = order.payments.find((item) => item.status !== "PAID") ?? order.payments[0];
+  if (!payment) return { error: "Paiement introuvable pour cette commande." };
+
+  let proofUrl: string | null = null;
+  try {
+    proofUrl = await saveImage(formData.get("photo") as File | null);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Capture invalide." };
+  }
+
+  if (!proofUrl && !reference) {
+    return { error: "Ajoutez une capture ou une référence de paiement." };
+  }
+
+  await db.payment.update({
+    where: { id: payment.id },
+    data: {
+      status: "DECLARED",
+      reference: reference || payment.reference,
+      proofUrl: proofUrl ?? payment.proofUrl,
+      declaredAt: new Date(),
+    },
+  });
+
+  const adminUser = await db.user.findFirst({
+    where: { role: "ADMIN", status: "ACTIVE" },
+    select: { id: true, phone: true },
+  });
+  if (adminUser) {
+    await notify({
+      userId: adminUser.id,
+      orderId: order.id,
+      recipient: adminUser.phone,
+      event: "PAYMENT_DECLARED",
+      message: `Paiement déclaré sur ${order.reference} (${order.total.toLocaleString("fr-FR")} FCFA)${reference ? ` — réf. ${reference}` : ""}. À vérifier dans Wave / Orange Money.`,
+    });
+  }
+
+  await logActivity({
+    userId: user.sub,
+    action: "PAYMENT_DECLARED",
+    entity: "Order",
+    entityId: order.id,
+    after: { reference, proofUrl: Boolean(proofUrl) },
+  });
+
+  revalidatePath(`/client/commande/${order.id}`);
+  revalidatePath(`/admin/commandes/${order.id}`);
+  revalidatePath("/admin/paiements");
+
+  return { success: "Paiement déclaré. L'administrateur vérifie et confirme sous peu." };
 }
 
 export async function reorderAction(formData: FormData): Promise<void> {

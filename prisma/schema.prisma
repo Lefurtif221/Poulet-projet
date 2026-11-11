@@ -62,6 +62,7 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   PENDING
+  DECLARED
   PAID
   FAILED
   REFUNDED
@@ -227,6 +228,7 @@ model Order {
   total            Int
   paymentMethod    PaymentMethod
   paymentStatus    PaymentStatus   @default(PENDING)
+  paymentLink      String?
   creditDueDate    DateTime?
   acceptDeadline   DateTime
   refusalReason    String?
@@ -280,9 +282,11 @@ model Payment {
   amount      Int
   method      PaymentMethod
   reference   String?
+  proofUrl    String?
   status      PaymentStatus @default(PENDING)
   note        String?
   confirmedById String?
+  declaredAt  DateTime?
   paidAt      DateTime?
   createdAt   DateTime      @default(now())
 

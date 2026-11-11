@@ -13,6 +13,7 @@ export type AppSettings = {
   deliverySlots: string[];
   waveNumber: string;
   orangeMoneyNumber: string;
+  wavePaymentLink: string;
   platformName: string;
   supportPhone: string;
 };
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   deliverySlots: ["05h30 – 07h00", "07h00 – 08h30", "09h00 – 10h30"],
   waveNumber: "+221 77 000 00 00",
   orangeMoneyNumber: "+221 77 000 00 00",
+  wavePaymentLink: "",
   platformName: "SunuVolaille",
   supportPhone: "+221 77 000 00 00",
 };

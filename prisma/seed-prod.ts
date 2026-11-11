@@ -16,6 +16,7 @@ const DEFAULTS: Record<string, unknown> = {
   deliverySlots: ["05h30 – 07h00", "07h00 – 08h30", "09h00 – 10h30"],
   waveNumber: "+221 77 000 00 00",
   orangeMoneyNumber: "+221 77 000 00 00",
+  wavePaymentLink: "",
   supportPhone: "+221 77 000 00 00",
   platformName: "SunuVolaille",
 };

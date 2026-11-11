@@ -36,7 +36,7 @@ export default async function AdminPaymentsPage() {
 
   const received = payments.filter((payment) => payment.status === "PAID").reduce((total, payment) => total + payment.amount, 0);
   const pendingClient = payments
-    .filter((payment) => payment.status === "PENDING")
+    .filter((payment) => ["PENDING", "DECLARED"].includes(payment.status))
     .reduce((total, payment) => total + payment.amount, 0);
   const payableSupplier = payouts
     .filter((payout) => payout.status === "PENDING" || payout.status === "PROCESSING")
@@ -106,7 +106,7 @@ export default async function AdminPaymentsPage() {
                       {formatDate(payment.paidAt ?? payment.createdAt)}
                     </td>
                     <td>
-                      {payment.status === "PENDING" ? (
+                      {["PENDING", "DECLARED"].includes(payment.status) ? (
                         <form action={recordPaymentAction} className="flex items-center justify-end gap-1.5">
                           <input type="hidden" name="paymentId" value={payment.id} />
                           <input
@@ -122,6 +122,16 @@ export default async function AdminPaymentsPage() {
                       ) : (
                         <p className="text-right text-[11px] text-on-surface-variant">
                           {payment.reference ?? PAYMENT_STATUS[payment.status].label}
+                          {payment.proofUrl ? (
+                            <a
+                              href={payment.proofUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="ml-2 font-semibold text-primary-container underline"
+                            >
+                              Preuve
+                            </a>
+                          ) : null}
                         </p>
                       )}
                     </td>

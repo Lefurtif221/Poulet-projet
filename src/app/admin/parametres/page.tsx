@@ -189,6 +189,23 @@ export default async function AdminSettingsPage() {
                   className="input"
                 />
               </div>
+              <div className="sm:col-span-2">
+                <label className="field-label" htmlFor="wavePaymentLink">
+                  Lien de paiement Wave par défaut (optionnel)
+                </label>
+                <input
+                  id="wavePaymentLink"
+                  name="wavePaymentLink"
+                  type="url"
+                  defaultValue={settings.wavePaymentLink}
+                  placeholder="https://pay.wave.com/…"
+                  className="input"
+                />
+                <p className="mt-1 text-[11px] text-on-surface-variant">
+                  Lien créé dans Wave Business. Pour un montant exact, colle plutôt un lien propre à
+                  chaque commande depuis la fiche commande admin.
+                </p>
+              </div>
               <div>
                 <label className="field-label" htmlFor="supportPhone">
                   Téléphone assistance

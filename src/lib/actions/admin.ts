@@ -610,7 +610,7 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
     .filter(Boolean);
   if (slots.length > 0) await setSetting("deliverySlots", slots);
 
-  for (const key of ["waveNumber", "orangeMoneyNumber", "supportPhone", "platformName"] as const) {
+  for (const key of ["waveNumber", "orangeMoneyNumber", "wavePaymentLink", "supportPhone", "platformName"] as const) {
     const raw = formData.get(key);
     if (raw !== null && String(raw).trim()) await setSetting(key, String(raw).trim());
   }
@@ -637,4 +637,35 @@ export async function markNotificationSentAction(formData: FormData): Promise<vo
     entityId: notificationId,
   });
   revalidatePath("/admin/notifications");
+}
+
+export async function setOrderPaymentLinkAction(formData: FormData): Promise<void> {
+  const admin = await adminUser();
+  const orderId = String(formData.get("orderId") ?? "");
+  const raw = String(formData.get("paymentLink") ?? "").trim();
+  const order = await db.order.findUnique({ where: { id: orderId } });
+  if (!order) return;
+
+  let paymentLink: string | null = null;
+  if (raw) {
+    try {
+      const url = new URL(raw);
+      const validHost = url.hostname === "wave.com" || url.hostname.endsWith(".wave.com");
+      if (url.protocol !== "https:" || !validHost) return;
+      paymentLink = url.toString();
+    } catch {
+      return;
+    }
+  }
+
+  await db.order.update({ where: { id: orderId }, data: { paymentLink } });
+  await logActivity({
+    userId: admin.sub,
+    action: "ORDER_PAYMENT_LINK_SET",
+    entity: "Order",
+    entityId: orderId,
+    after: { paymentLink },
+  });
+  revalidatePath(`/admin/commandes/${orderId}`);
+  revalidatePath(`/client/commande/${orderId}`);
 }
