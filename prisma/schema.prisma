@@ -133,6 +133,9 @@ model User {
   confirmedPayments Payment[]       @relation("PaymentConfirmedBy")
   activityLogs      ActivityLog[]
   notifications     Notification[]
+  createdPayouts    Payout[]        @relation("PayoutCreatedBy")
+  approvedPayouts   Payout[]        @relation("PayoutApprovedBy")
+  cashClosings      CashClosing[]   @relation("CashClosingClosedBy")
 }
 
 model Client {
@@ -300,17 +303,22 @@ model Payment {
 }
 
 model Payout {
-  id         String       @id @default(cuid())
-  supplierId String
-  amount     Int
-  status     PayoutStatus @default(PENDING)
-  reference  String?
-  note       String?
-  paidAt     DateTime?
-  createdAt  DateTime     @default(now())
+  id           String       @id @default(cuid())
+  supplierId   String
+  amount       Int
+  status       PayoutStatus @default(PENDING)
+  reference    String?
+  note         String?
+  createdById  String?
+  approvedById String?
+  approvedAt   DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime     @default(now())
 
-  supplier Supplier     @relation(fields: [supplierId], references: [id])
-  items    PayoutItem[]
+  supplier   Supplier     @relation(fields: [supplierId], references: [id])
+  createdBy  User?        @relation("PayoutCreatedBy", fields: [createdById], references: [id])
+  approvedBy User?        @relation("PayoutApprovedBy", fields: [approvedById], references: [id])
+  items      PayoutItem[]
 
   @@index([supplierId, status])
 }
@@ -318,13 +326,13 @@ model Payout {
 model PayoutItem {
   id       String @id @default(cuid())
   payoutId String
-  orderId  String
+  orderId  String @unique
   amount   Int
 
   payout Payout @relation(fields: [payoutId], references: [id], onDelete: Cascade)
   order  Order  @relation(fields: [orderId], references: [id])
 
-  @@unique([payoutId, orderId])
+  @@index([payoutId])
 }
 
 model Delivery {
@@ -426,6 +434,22 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model CashClosing {
+  id           String   @id @default(cuid())
+  date         DateTime @unique @db.Date
+  cash         Int      @default(0)
+  wave         Int      @default(0)
+  orangeMoney  Int      @default(0)
+  credit       Int      @default(0)
+  note         String?
+  closedById   String?
+  closedBy     User?    @relation("CashClosingClosedBy", fields: [closedById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([date])
 }
 
 model Notification {

@@ -21,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/credit", label: "Crédit & risque", icon: "credit_card" },
     { href: "/admin/livraisons", label: "Livraisons", icon: "local_shipping" },
     { href: "/admin/paiements", label: "Paiements", icon: "payments" },
+    { href: "/admin/caisse", label: "Caisse", icon: "savings" },
     { href: "/admin/litiges", label: "Litiges", icon: "gavel", badge: openDisputes },
     { href: "/admin/notifications", label: "Notifications", icon: "notifications", badge: queuedNotifications },
     { href: "/admin/journal", label: "Journal d'activité", icon: "history" },

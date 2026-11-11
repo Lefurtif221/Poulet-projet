@@ -51,7 +51,10 @@ Objectif : pouvoir encaisser et livrer sans risque opérationnel.
 | 0.10 | CGU/CGV, contrats éleveurs, CDP, assurance | Vendre légalement | externe |
 
 **Déjà livré dans V2.0** : CI GitHub Actions, workflow de sauvegarde quotidienne (secrets S3 à
-configurer), facture PDF téléchargeable, upload photo produit.
+configurer), facture PDF téléchargeable, upload photo produit, preuve de paiement manuelle.
+
+**Reste V2.0** : staging, monitoring/alertes, 2FA admin + rate limiting, poids/quantité livrés,
+documents juridiques.
 
 **Critère de sortie** : une commande réelle peut être payée manuellement, livrée, facturée, sauvegardée et auditée sans intervention technique.
 
@@ -71,6 +74,12 @@ Déclencheurs : **> 100 notifications/semaine**, **> 15 min d'admin par commande
 | 1.5 | Clôture de caisse quotidienne | Espèces, Wave, OM, crédit |
 | 1.6 | Lots de reversements éleveurs | Préparer un lot, double validation, marquer payé |
 | 1.7 | Journal financier non modifiable | Traçabilité comptable |
+
+**Déjà livré dans V2.1** : lien Wave par commande + QR, preuve de paiement et confirmation admin,
+relances crédit assistées sur WhatsApp, lots de reversements avec double validation, clôture de
+caisse quotidienne, création d'un second administrateur.
+
+**Reste V2.1** : templates WhatsApp standardisés, reçus de paiement, relevés de crédit.
 
 ### V2.2 — Logistique (P1)
 

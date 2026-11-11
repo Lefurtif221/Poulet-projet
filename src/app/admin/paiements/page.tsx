@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatFCFA } from "@/lib/format";
 import { PAYMENT_METHOD, PAYMENT_STATUS } from "@/lib/labels";
@@ -12,6 +13,8 @@ import {
   buttonClass,
 } from "@/components/ui";
 import {
+  approvePayoutAction,
+  createPayoutBatchAction,
   markPayoutPaidAction,
   recordPaymentAction,
   setPayoutStatusAction,
@@ -21,18 +24,43 @@ import { PendingButton } from "@/components/forms/pending-button";
 export const metadata: Metadata = { title: "Paiements" };
 
 export default async function AdminPaymentsPage() {
-  const [payments, payouts] = await Promise.all([
+  const admin = await requireUser("ADMIN");
+  const [payments, payouts, eligibleOrders] = await Promise.all([
     db.payment.findMany({
       include: { order: { include: { client: true, supplier: true } }, client: true, supplier: true },
       orderBy: { createdAt: "desc" },
       take: 60,
     }),
     db.payout.findMany({
-      include: { supplier: true, items: { include: { order: true } } },
+      include: {
+        supplier: true,
+        createdBy: { select: { name: true } },
+        approvedBy: { select: { name: true } },
+        items: { include: { order: true } },
+      },
       orderBy: { createdAt: "desc" },
       take: 40,
     }),
+    db.order.findMany({
+      where: { status: "CLOSED", payoutItems: { none: {} } },
+      include: { supplier: true, dispute: true },
+    }),
   ]);
+
+  const batchMap = new Map<string, { supplierName: string; count: number; amount: number }>();
+  for (const order of eligibleOrders) {
+    const amount = Math.max(0, order.supplierTotal - (order.dispute?.adjustedAmount ?? 0));
+    if (amount <= 0) continue;
+    const current = batchMap.get(order.supplierId) ?? {
+      supplierName: order.supplier.farmName,
+      count: 0,
+      amount: 0,
+    };
+    current.count += 1;
+    current.amount += amount;
+    batchMap.set(order.supplierId, current);
+  }
+  const batchRows = [...batchMap.entries()].map(([supplierId, value]) => ({ supplierId, ...value }));
 
   const received = payments.filter((payment) => payment.status === "PAID").reduce((total, payment) => total + payment.amount, 0);
   const pendingClient = payments
@@ -64,6 +92,41 @@ export default async function AdminPaymentsPage() {
         <StatCard label="À reverser aux éleveurs" value={formatFCFA(payableSupplier)} icon="outbox" tone="warning" />
         <StatCard label="Reversé" value={formatFCFA(paidSupplier)} icon="account_balance" />
       </div>
+
+      <Card className="p-4">
+        <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+          <Icon name="account_balance" className="text-lg text-primary-container" />
+          Préparer un lot de reversement
+        </h2>
+        <p className="mt-1 text-xs text-on-surface-variant">
+          Un lot regroupe toutes les commandes clôturées non encore payées d&apos;un éleveur. Un
+          administrateur prépare le lot, un <strong>autre</strong> administrateur l&apos;approuve.
+        </p>
+        {batchRows.length === 0 ? (
+          <p className="mt-3 text-sm text-on-surface-variant">Aucune commande éligible pour le moment.</p>
+        ) : (
+          <div className="mt-3 divide-y divide-outline-variant/25">
+            {batchRows.map((row) => (
+              <div key={row.supplierId} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div>
+                  <p className="text-sm font-semibold">{row.supplierName}</p>
+                  <p className="text-[11px] text-on-surface-variant">{row.count} commande(s) éligible(s)</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="money text-sm">{formatFCFA(row.amount)}</span>
+                  <form action={createPayoutBatchAction}>
+                    <input type="hidden" name="supplierId" value={row.supplierId} />
+                    <PendingButton size="sm" pendingLabel="Création…">
+                      <Icon name="add" className="text-base" />
+                      Préparer le lot
+                    </PendingButton>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <section>
         <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
@@ -170,6 +233,16 @@ export default async function AdminPaymentsPage() {
                       Créé le {formatDate(payout.createdAt)}
                       {payout.items.length > 0 ? ` · ${payout.items.length} commande(s)` : ""}
                     </p>
+                    {payout.createdBy ? (
+                      <p className="text-[11px] text-on-surface-variant">
+                        Préparé par {payout.createdBy.name}
+                      </p>
+                    ) : null}
+                    {payout.approvedBy ? (
+                      <p className="text-[11px] text-primary-container">
+                        Approuvé par {payout.approvedBy.name} le {formatDate(payout.approvedAt)}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="text-right">
                     <p className="money text-lg">{formatFCFA(payout.amount)}</p>
@@ -185,21 +258,45 @@ export default async function AdminPaymentsPage() {
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-outline-variant/30 pt-2">
-                  {payout.status !== "PAID" ? (
+                  {payout.status === "PAID" ? (
+                    <p className="text-[11px] font-semibold text-primary-container">
+                      Payé le {formatDate(payout.paidAt)}
+                      {payout.reference ? ` · ${payout.reference}` : ""}
+                    </p>
+                  ) : (
                     <>
-                      <form action={markPayoutPaidAction} className="flex flex-1 items-center gap-1.5">
-                        <input type="hidden" name="payoutId" value={payout.id} />
-                        <input
-                          name="reference"
-                          placeholder="Réf. virement Wave / OM"
-                          className="input h-9 min-w-40 flex-1 text-[11px]"
-                          aria-label="Référence du virement"
-                        />
-                        <PendingButton size="sm" pendingLabel="Envoi…">
-                          <Icon name="check" className="text-base" />
-                          Marquer payé
-                        </PendingButton>
-                      </form>
+                      {payout.status === "PENDING" ? (
+                        payout.createdById && payout.createdById === admin.id ? (
+                          <p className="w-full text-[11px] text-amber-700">
+                            Lot préparé par vous : un autre administrateur doit l&apos;approuver.
+                          </p>
+                        ) : (
+                          <form action={approvePayoutAction}>
+                            <input type="hidden" name="payoutId" value={payout.id} />
+                            <PendingButton size="sm" pendingLabel="Approbation…">
+                              <Icon name="check" className="text-base" />
+                              Approuver le lot
+                            </PendingButton>
+                          </form>
+                        )
+                      ) : null}
+
+                      {payout.status === "PROCESSING" ? (
+                        <form action={markPayoutPaidAction} className="flex flex-1 items-center gap-1.5">
+                          <input type="hidden" name="payoutId" value={payout.id} />
+                          <input
+                            name="reference"
+                            placeholder="Réf. virement Wave / OM"
+                            className="input h-9 min-w-40 flex-1 text-[11px]"
+                            aria-label="Référence du virement"
+                          />
+                          <PendingButton size="sm" pendingLabel="Envoi…">
+                            <Icon name="check" className="text-base" />
+                            Marquer payé
+                          </PendingButton>
+                        </form>
+                      ) : null}
+
                       <form action={setPayoutStatusAction}>
                         <input type="hidden" name="payoutId" value={payout.id} />
                         <input type="hidden" name="status" value={payout.status === "BLOCKED" ? "PENDING" : "BLOCKED"} />
@@ -208,11 +305,6 @@ export default async function AdminPaymentsPage() {
                         </PendingButton>
                       </form>
                     </>
-                  ) : (
-                    <p className="text-[11px] font-semibold text-primary-container">
-                      Payé le {formatDate(payout.paidAt)}
-                      {payout.reference ? ` · ${payout.reference}` : ""}
-                    </p>
                   )}
                 </div>
               </Card>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDate, formatFCFA, formatPhone } from "@/lib/format";
 import { ROLE } from "@/lib/labels";
-import { Icon, buttonClass } from "@/components/ui";
+import { Card, Icon, buttonClass } from "@/components/ui";
+import { CreateAdminForm } from "@/components/admin/create-admin-form";
 import { resetPinAction, toggleSuspendUserAction } from "@/lib/actions/admin";
 import type { Role, UserStatus } from "@prisma/client";
 
@@ -56,6 +57,15 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
           Suspendre, réactiver, corriger les informations et réinitialiser un PIN.
         </p>
       </div>
+
+      <Card className="p-4">
+        <h2 className="font-display text-base font-semibold">Ajouter un administrateur</h2>
+        <p className="mb-3 mt-1 text-xs text-on-surface-variant">
+          Un second administrateur est nécessaire pour approuver les lots de reversement (double
+          validation).
+        </p>
+        <CreateAdminForm />
+      </Card>
 
       <form className="card grid gap-3 p-3 md:grid-cols-[1fr_auto_auto_auto] md:items-end">
         <div>

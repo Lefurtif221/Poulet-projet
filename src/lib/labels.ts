@@ -45,7 +45,7 @@ export const PAYMENT_STATUS: Record<PaymentStatus, { label: string; tone: string
 
 export const PAYOUT_STATUS: Record<PayoutStatus, { label: string; tone: string }> = {
   PENDING: { label: "À reverser", tone: "bg-amber-50 text-amber-700" },
-  PROCESSING: { label: "En cours", tone: "bg-blue-50 text-blue-700" },
+  PROCESSING: { label: "Approuvé", tone: "bg-blue-50 text-blue-700" },
   PAID: { label: "Payé", tone: "bg-green-50 text-green-700" },
   BLOCKED: { label: "Bloqué", tone: "bg-red-50 text-red-700" },
 };

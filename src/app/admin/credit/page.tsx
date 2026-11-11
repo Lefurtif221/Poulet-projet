@@ -69,6 +69,7 @@ export default async function AdminCreditPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         {clients.map((client) => {
+          const phoneDigits = client.user.phone.replace(/\D/g, "");
           const overdue = client.orders.filter(
             (order) => order.paymentStatus === "PENDING" && order.creditDueDate && order.creditDueDate < new Date()
           );
@@ -127,6 +128,9 @@ export default async function AdminCreditPage() {
                   <ul className="divide-y divide-outline-variant/25">
                     {pending.slice(0, 5).map((order) => {
                       const late = order.creditDueDate && order.creditDueDate < new Date();
+                      const reminder = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(
+                        `Bonjour ${client.establishment}, la facture ${order.reference} de ${formatFCFA(order.total)} est échue depuis le ${formatDate(order.creditDueDate)}. Merci de régulariser pour conserver votre crédit. SunuVolaille`
+                      )}`;
                       return (
                         <li key={order.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]">
                           <span className="font-semibold">#{order.reference}</span>
@@ -134,6 +138,16 @@ export default async function AdminCreditPage() {
                           <span className={late ? "font-bold text-red-700" : "text-on-surface-variant"}>
                             {formatFCFA(order.total)}
                           </span>
+                          {late ? (
+                            <a
+                              href={reminder}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-primary-container underline"
+                            >
+                              Relancer
+                            </a>
+                          ) : null}
                         </li>
                       );
                     })}
@@ -176,7 +190,18 @@ export default async function AdminCreditPage() {
               </form>
               {overdue.length > 0 ? (
                 <p className="mt-1 text-[10px] font-semibold text-red-700">
-                  {overdue.length} facture(s) échue(s) : relance puis suspension.
+                  {overdue.length} facture(s) échue(s) :{" "}
+                  <a
+                    href={`https://wa.me/${phoneDigits}?text=${encodeURIComponent(
+                      `Bonjour ${client.establishment}, votre encours SunuVolaille présente ${overdue.length} facture(s) échue(s). Merci de nous contacter pour régulariser.`
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    relancer sur WhatsApp
+                  </a>{" "}
+                  puis suspension.
                 </p>
               ) : null}
             </Card>

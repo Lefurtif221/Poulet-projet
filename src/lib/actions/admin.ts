@@ -320,7 +320,7 @@ export async function markPayoutPaidAction(formData: FormData): Promise<void> {
     where: { id: payoutId },
     include: { supplier: { include: { user: true } } },
   });
-  if (!payout || payout.status === "PAID") return;
+  if (!payout || payout.status !== "PROCESSING" || !payout.approvedById) return;
 
   await db.payout.update({
     where: { id: payout.id },
@@ -668,4 +668,133 @@ export async function setOrderPaymentLinkAction(formData: FormData): Promise<voi
   });
   revalidatePath(`/admin/commandes/${orderId}`);
   revalidatePath(`/client/commande/${orderId}`);
+}
+
+export async function createPayoutBatchAction(formData: FormData): Promise<void> {
+  const admin = await adminUser();
+  const supplierId = String(formData.get("supplierId") ?? "");
+  if (!supplierId) return;
+
+  const orders = await db.order.findMany({
+    where: { supplierId, status: "CLOSED", payoutItems: { none: {} } },
+    include: { dispute: true },
+  });
+  const rows = orders
+    .map((order) => ({
+      orderId: order.id,
+      amount: Math.max(0, order.supplierTotal - (order.dispute?.adjustedAmount ?? 0)),
+    }))
+    .filter((row) => row.amount > 0);
+  if (rows.length === 0) return;
+
+  const amount = rows.reduce((total, row) => total + row.amount, 0);
+  const payout = await db.payout.create({
+    data: {
+      supplierId,
+      amount,
+      status: "PENDING",
+      note: `Lot de ${rows.length} commande(s)`,
+      createdById: admin.sub,
+      items: { create: rows },
+    },
+  });
+  await logActivity({
+    userId: admin.sub,
+    action: "PAYOUT_BATCH_CREATED",
+    entity: "Payout",
+    entityId: payout.id,
+    after: { supplierId, amount, orders: rows.length },
+  });
+  revalidatePath("/admin/paiements");
+}
+
+export async function approvePayoutAction(formData: FormData): Promise<void> {
+  const admin = await adminUser();
+  const payoutId = String(formData.get("payoutId") ?? "");
+  const payout = await db.payout.findUnique({ where: { id: payoutId } });
+  if (!payout || payout.status !== "PENDING") return;
+  if (payout.createdById && payout.createdById === admin.sub) return;
+
+  await db.payout.update({
+    where: { id: payout.id },
+    data: { status: "PROCESSING", approvedById: admin.sub, approvedAt: new Date() },
+  });
+  await logActivity({
+    userId: admin.sub,
+    action: "PAYOUT_APPROVED",
+    entity: "Payout",
+    entityId: payout.id,
+    after: { amount: payout.amount },
+  });
+  revalidatePath("/admin/paiements");
+}
+
+export async function createAdminAction(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  const admin = await adminUser();
+  const name = String(formData.get("name") ?? "").trim();
+  const phone = normalizePhone(String(formData.get("phone") ?? ""));
+  const pin = String(formData.get("pin") ?? "");
+  if (!name || !phone) return { error: "Nom et téléphone requis." };
+  if (!isValidPin(pin)) return { error: "Le PIN doit contenir 4 à 6 chiffres." };
+
+  const existing = await db.user.findUnique({ where: { phone }, select: { id: true } });
+  if (existing) return { error: "Ce numéro est déjà utilisé." };
+
+  const user = await db.user.create({
+    data: {
+      name,
+      phone,
+      pinHash: await hashPin(pin),
+      role: "ADMIN",
+      status: "ACTIVE",
+    },
+  });
+  await logActivity({
+    userId: admin.sub,
+    action: "ADMIN_CREATED",
+    entity: "User",
+    entityId: user.id,
+    after: { name, phone },
+  });
+  revalidatePath("/admin/utilisateurs");
+  return { success: "Administrateur créé. Il peut approuver les reversements." };
+}
+
+export async function createCashClosingAction(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  const admin = await adminUser();
+  const dateRaw = String(formData.get("date") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return { error: "Date invalide." };
+  const date = new Date(`${dateRaw}T00:00:00.000Z`);
+
+  const number = (key: string) => {
+    const value = Number(formData.get(key) ?? 0);
+    return Number.isFinite(value) && value >= 0 ? Math.round(value) : 0;
+  };
+  const cash = number("cash");
+  const wave = number("wave");
+  const orangeMoney = number("orangeMoney");
+  const credit = number("credit");
+  const note = String(formData.get("note") ?? "").trim();
+
+  const closing = await db.cashClosing.upsert({
+    where: { date },
+    create: { date, cash, wave, orangeMoney, credit, note: note || null, closedById: admin.sub },
+    update: { cash, wave, orangeMoney, credit, note: note || null, closedById: admin.sub },
+  });
+  await logActivity({
+    userId: admin.sub,
+    action: "CASH_CLOSING_SAVED",
+    entity: "CashClosing",
+    entityId: closing.id,
+    after: { date: dateRaw, cash, wave, orangeMoney, credit },
+  });
+  revalidatePath("/admin/caisse");
+  revalidatePath("/admin");
+  return { success: "Clôture de caisse enregistrée." };
 }
