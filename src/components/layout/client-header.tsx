@@ -53,7 +53,7 @@ export function ClientHeader({
       </div>
 
       <div className="border-b border-outline-variant/30 bg-surface/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 md:gap-4 md:px-6">
           <Link href="/client/catalogue" className="shrink-0">
             <Logo />
           </Link>

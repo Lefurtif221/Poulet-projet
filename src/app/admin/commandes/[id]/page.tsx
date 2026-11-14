@@ -113,13 +113,14 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-outline-variant/30 px-4 py-3">
               <h2 className="font-display text-base font-semibold">Lots commandés</h2>
               <span className="badge bg-surface-container text-on-surface-variant">{order.items.length}</span>
             </div>
-            <table className="table-base">
+            <div className="overflow-x-auto">
+            <table className="table-base min-w-[520px]">
               <thead>
                 <tr>
                   <th>Produit</th>
@@ -146,6 +147,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                 ))}
               </tbody>
             </table>
+            </div>
             <div className="grid gap-1 border-t border-outline-variant/30 bg-surface-container-low px-4 py-3 text-xs sm:grid-cols-2">
               <span className="text-on-surface-variant">Sous-total client</span>
               <span className="text-right">{formatFCFA(order.subtotal)}</span>
@@ -331,7 +333,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
           ) : null}
         </div>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <Card className="p-4">
             <h2 className="font-display text-base font-semibold">Client</h2>
             <p className="mt-1 text-sm font-semibold">{order.client.establishment}</p>

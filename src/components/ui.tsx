@@ -284,24 +284,24 @@ export function Logo({
   full?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-2.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0C3B26] ring-1 ring-[#E8A33D]/70">
+    <span className="flex items-center gap-2 sm:gap-2.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0C3B26] ring-1 ring-[#E8A33D]/70 sm:h-10 sm:w-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/emblem.svg" alt="" className="h-8 w-8" />
+        <img src="/brand/emblem.svg" alt="" className="h-7 w-7 sm:h-8 sm:w-8" />
       </span>
       <span className="min-w-0 leading-none">
         <span className="flex items-center gap-1.5">
-          <span className="whitespace-nowrap font-sans text-[17px] font-extrabold tracking-[-0.03em]">
+          <span className="whitespace-nowrap font-sans text-[15px] font-extrabold tracking-[-0.03em] sm:text-[17px]">
             <span className={light ? "text-white" : "text-[#0E5A38]"}>Sunu</span>
             <span className={light ? "text-white" : "text-[#152033]"}>Volaille</span>
           </span>
-          <span className="rounded-md bg-[#E8A33D] px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-[#0C3B26]">
+          <span className="hidden rounded-md bg-[#E8A33D] px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-[#0C3B26] min-[360px]:inline-block">
             PRO
           </span>
         </span>
         <span
           className={cn(
-            "mt-1 block whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.16em]",
+            "mt-1 hidden whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.16em] sm:block",
             light ? "text-primary-fixed" : "text-on-surface-variant"
           )}
         >

@@ -33,12 +33,12 @@ export default async function InvoicePage({ params }: { params: Params }) {
 
   return (
     <div className="min-h-screen bg-[#eef1f5] px-3 py-6 print:bg-white print:p-0">
-      <div className="mx-auto mb-3 flex max-w-3xl items-center justify-between print:hidden">
+      <div className="mx-auto mb-3 flex max-w-3xl flex-wrap items-center justify-between gap-2 print:hidden">
         <Link href={backHref} className="flex items-center gap-1.5 text-sm font-semibold text-primary-container">
           <Icon name="arrow_back" className="text-lg" />
           Retour au suivi
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <a href={`/api/facture/${order.id}`} className={buttonClass("primary", "md")}>
             <Icon name="download" className="text-lg" />
             Télécharger le PDF
@@ -47,7 +47,7 @@ export default async function InvoicePage({ params }: { params: Params }) {
         </div>
       </div>
 
-      <article className="mx-auto max-w-3xl bg-white p-8 shadow-sm print:max-w-none print:shadow-none">
+      <article className="mx-auto max-w-3xl bg-white p-4 shadow-sm sm:p-8 print:max-w-none print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/40 pb-5">
           <div>
             <Logo />

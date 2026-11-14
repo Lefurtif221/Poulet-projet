@@ -172,7 +172,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <section>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
@@ -280,7 +280,7 @@ export default async function AdminDashboard() {
           </section>
         </div>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-5">
           <section>
             <div className="mb-3 flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
