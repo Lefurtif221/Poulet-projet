@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Icon, Logo } from "@/components/ui";
 import { formatFCFA } from "@/lib/format";
@@ -32,6 +33,30 @@ export function ClientHeader({
 }: ClientHeaderProps) {
   const pathname = usePathname();
   const available = Math.max(0, creditLimit - balanceDue);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setAccountOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAccountOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [accountOpen]);
 
   return (
     <header className="sticky top-0 z-40">
@@ -99,9 +124,12 @@ export function ClientHeader({
             >
               <CartCount />
             </Link>
-            <div className="group relative">
+            <div className="relative" ref={accountRef}>
               <button
                 type="button"
+                onClick={() => setAccountOpen((open) => !open)}
+                aria-expanded={accountOpen}
+                aria-haspopup="menu"
                 className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface-container-low"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-white">
@@ -111,11 +139,26 @@ export function ClientHeader({
                   <span className="block max-w-32 truncate text-xs font-semibold">{establishment}</span>
                   <span className="block text-[10px] text-on-surface-variant">{name}</span>
                 </span>
-                <Icon name="expand_more" className="hidden text-base text-on-surface-variant xl:block" />
+                <Icon
+                  name="expand_more"
+                  className={cn(
+                    "hidden text-base text-on-surface-variant transition-transform xl:block",
+                    accountOpen && "rotate-180"
+                  )}
+                />
               </button>
-              <div className="invisible absolute right-0 top-full z-50 w-52 rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-1 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+              <div
+                role="menu"
+                className={cn(
+                  "absolute right-0 top-full z-50 w-52 rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-1 shadow-lg transition-all",
+                  accountOpen
+                    ? "visible translate-y-0 opacity-100"
+                    : "invisible -translate-y-1 opacity-0"
+                )}
+              >
                 <Link
                   href="/client/credit"
+                  onClick={() => setAccountOpen(false)}
                   className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-surface-container-low"
                 >
                   <Icon name="account_balance_wallet" className="text-lg" />
@@ -123,6 +166,7 @@ export function ClientHeader({
                 </Link>
                 <Link
                   href="/client/recurrentes"
+                  onClick={() => setAccountOpen(false)}
                   className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-surface-container-low"
                 >
                   <Icon name="event_repeat" className="text-lg" />
