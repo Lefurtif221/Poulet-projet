@@ -137,7 +137,7 @@ export default async function AdminValidationPage() {
         </p>
         <ul className="mt-2 grid gap-1 sm:grid-cols-2">
           <li>Éleveur : visite ou référence vérifiée, capacité réelle confirmée.</li>
-          <li>Éleveur : numéro Wave / Orange Money confirmé par appel.</li>
+          <li>Éleveur : numéro de paiement (Wave ou mobile money) confirmé par appel.</li>
           <li>Client : établissement joignable, adresse de livraison précise.</li>
           <li>Client : crédit non activé à l&apos;inscription (activation séparée).</li>
         </ul>

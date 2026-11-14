@@ -50,16 +50,22 @@ export default async function OrderDetailPage({
   ]);
   if (!order) notFound();
 
-  const payment = order.payments[0];
-  const isCredit = order.paymentMethod === "CREDIT";
+  const wavePayment = order.payments.find((item) => item.method === "WAVE") ?? null;
+  const cashPayment = order.payments.find((item) => item.method === "CASH_ON_DELIVERY") ?? null;
   const alertError = first(query.erreur);
   const payLink = order.paymentLink || settings.wavePaymentLink || null;
-  const waveLink = order.paymentMethod === "WAVE" ? payLink : null;
   const canPayOnline =
-    ["WAVE", "ORANGE_MONEY", "BANK_TRANSFER"].includes(order.paymentMethod) &&
-    payment != null &&
-    ["PENDING", "DECLARED"].includes(payment.status);
+    wavePayment != null && ["PENDING", "DECLARED"].includes(wavePayment.status);
+  const waveLink = canPayOnline ? payLink : null;
   const qrDataUrl = waveLink ? await QRCode.toDataURL(waveLink, { width: 180, margin: 1 }) : null;
+  const paymentModeLabel =
+    order.creditAmount > 0
+      ? order.remainderAmount > 0
+        ? `Crédit + ${order.remainderMethod === "WAVE" ? "Wave" : "comptant"}`
+        : "Crédit B2B"
+      : order.paymentMethod === "WAVE"
+        ? "Wave"
+        : "Paiement à la livraison";
 
   return (
     <div className="space-y-5">
@@ -271,105 +277,112 @@ export default async function OrderDetailPage({
             </div>
             <div className="space-y-3 px-4 py-3 text-sm">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-on-surface-variant">Mode</span>
-                <span className="font-semibold">{PAYMENT_METHOD[order.paymentMethod].label}</span>
+                <span className="text-on-surface-variant">Total commande</span>
+                <span className="money text-base">{formatFCFA(order.total)}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-on-surface-variant">Statut</span>
-                {payment ? <PaymentBadge status={payment.status} /> : <span>—</span>}
+                <span className="text-on-surface-variant">Mode</span>
+                <span className="font-semibold">{paymentModeLabel}</span>
               </div>
-              {isCredit ? (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-on-surface-variant">Échéance</span>
+              <div className="space-y-1.5 rounded-lg bg-surface-container-low p-2.5">
+                {order.payments.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-on-surface-variant">
+                      {PAYMENT_METHOD[item.method].label} · {formatFCFA(item.amount)}
+                    </span>
+                    <PaymentBadge status={item.status} />
+                  </div>
+                ))}
+              </div>
+
+              {order.creditAmount > 0 ? (
+                <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="flex items-center gap-2 text-xs font-semibold text-amber-900">
+                    <Icon name="account_balance_wallet" className="text-base" />
+                    Crédit B2B utilisé
+                  </p>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-amber-800">Montant</span>
+                    <span className="money">{formatFCFA(order.creditAmount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-amber-800">Échéance</span>
                     <span className="font-semibold">{formatDateTime(order.creditDueDate)}</span>
                   </div>
-                  <Alert tone="warning">
-                    Montant ajouté à votre encours : {formatFCFA(order.total)}. Réglez avant
-                    l&apos;échéance pour conserver votre crédit.
-                  </Alert>
-                </>
+                  <p className="text-[11px] text-amber-900">
+                    Ce montant est ajouté à votre encours. Il doit être réglé avant vos prochaines
+                    commandes à crédit.
+                  </p>
+                </div>
               ) : null}
-              {canPayOnline ? (
-                <div className="space-y-3">
-                  {payment?.status === "DECLARED" ? (
+
+              {wavePayment ? (
+                <div className="space-y-2 rounded-lg border border-[#35C6F4]/40 bg-[#F0FBFF] p-3">
+                  <p className="flex items-center gap-2 text-xs font-semibold text-on-surface">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/brand/wave-icon.svg" alt="" className="h-5 w-5 rounded" />
+                    Wave
+                  </p>
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-on-surface-variant">Montant</span>
+                    <span className="money">{formatFCFA(wavePayment.amount)}</span>
+                  </div>
+
+                  {wavePayment.status === "DECLARED" ? (
                     <Alert tone="info" title="Paiement déclaré">
-                      Référence : {payment.reference ?? "—"}. Vérification en cours par
+                      Référence : {wavePayment.reference ?? "—"}. Vérification en cours par
                       l&apos;administrateur.
                     </Alert>
                   ) : null}
 
-                  {payment?.status === "PENDING" ? (
-                    <div className="space-y-2 rounded-lg border border-outline-variant/40 bg-surface-container-low p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-on-surface-variant">Montant à payer</span>
-                        <span className="money text-lg">{formatFCFA(order.total)}</span>
-                      </div>
+                  {wavePayment.status === "PENDING" ? (
+                    <>
                       <p className="text-xs text-on-surface-variant">
                         Référence : <strong className="text-on-surface">{order.reference}</strong>
                         <CopyButton value={order.reference} />
                       </p>
-
-                      {order.paymentMethod === "WAVE" ? (
-                        waveLink ? (
-                          <a
-                            href={waveLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={buttonClass("primary", "md", "w-full")}
-                          >
-                            <Icon name="arrow_forward" className="text-lg" />
-                            Payer avec Wave
-                          </a>
-                        ) : (
-                          <p className="text-xs text-on-surface-variant">
-                            Numéro Wave :{" "}
-                            <strong className="text-on-surface">{formatPhone(settings.waveNumber)}</strong>
-                            <CopyButton value={settings.waveNumber} />
-                          </p>
-                        )
-                      ) : null}
-
-                      {order.paymentMethod === "ORANGE_MONEY" ? (
+                      {waveLink ? (
+                        <a
+                          href={waveLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={buttonClass("primary", "md", "w-full")}
+                        >
+                          <Icon name="arrow_forward" className="text-lg" />
+                          Payer avec Wave
+                        </a>
+                      ) : (
                         <p className="text-xs text-on-surface-variant">
-                          Numéro Orange Money :{" "}
-                          <strong className="text-on-surface">
-                            {formatPhone(settings.orangeMoneyNumber)}
-                          </strong>
-                          <CopyButton value={settings.orangeMoneyNumber} />
+                          Numéro Wave :{" "}
+                          <strong className="text-on-surface">{formatPhone(settings.waveNumber)}</strong>
+                          <CopyButton value={settings.waveNumber} />
                         </p>
-                      ) : null}
-
+                      )}
                       {qrDataUrl ? (
                         <div className="flex justify-center rounded-lg bg-white p-2">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={qrDataUrl} alt="QR code Wave" className="h-40 w-40" />
+                          <img src={qrDataUrl} alt="QR code Wave" className="h-36 w-36" />
                         </div>
                       ) : null}
-
-                      {order.paymentMethod === "WAVE" && !waveLink ? (
-                        <p className="text-[10px] text-on-surface-variant">
-                          Astuce : l&apos;admin peut coller un lien Wave propre à cette commande
-                          depuis sa fiche.
-                        </p>
-                      ) : null}
-                    </div>
+                      <PaymentProofForm orderId={order.id} />
+                    </>
                   ) : null}
 
-                  {payment?.status === "PENDING" ? <PaymentProofForm orderId={order.id} /> : null}
-
-                  {payment?.status === "DECLARED" && payment.proofUrl ? (
+                  {wavePayment.status === "DECLARED" && wavePayment.proofUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={payment.proofUrl}
+                      src={wavePayment.proofUrl}
                       alt="Preuve de paiement"
                       className="max-h-48 rounded-lg border border-outline-variant/40 object-cover"
                     />
                   ) : null}
                 </div>
               ) : null}
-              {order.paymentMethod === "CASH_ON_DELIVERY" ? (
-                <Alert tone="info">À régler au livreur à la réception : {formatFCFA(order.total)}.</Alert>
+
+              {cashPayment && cashPayment.status !== "PAID" ? (
+                <Alert tone="info">
+                  À régler au livreur à la réception : {formatFCFA(cashPayment.amount)}.
+                </Alert>
               ) : null}
               <ButtonLink href={`/client/facture/${order.id}`} variant="outline" className="w-full">
                 <Icon name="download" className="text-lg" />

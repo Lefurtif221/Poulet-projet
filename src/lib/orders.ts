@@ -13,6 +13,7 @@ export type PlaceOrderInput = {
   address: string;
   note?: string;
   paymentMethod: PaymentMethod;
+  remainderMethod?: "WAVE" | "CASH_ON_DELIVERY";
   items: { productId: string; quantity: number; preparation: Preparation }[];
 };
 
@@ -133,26 +134,62 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   const commissionAmount = subtotal - supplierTotal;
   const supplierId = supplierIds[0];
 
+  let creditAmount = 0;
+  let remainderAmount = total;
+  let remainderMethod: "WAVE" | "CASH_ON_DELIVERY" | null = null;
+
   if (input.paymentMethod === "CREDIT") {
     if (client.creditLimit <= 0) {
       return { ok: false, error: "Le paiement à crédit n'est pas activé sur votre compte." };
     }
-    if (client.balanceDue + total > client.creditLimit) {
-      return { ok: false, error: "Plafond de crédit insuffisant pour cette commande." };
-    }
     const overdue = await db.order.findFirst({
       where: {
         clientId: client.id,
-        paymentMethod: "CREDIT",
-        paymentStatus: "PENDING",
-        creditDueDate: { lt: new Date() },
         status: { notIn: ["CANCELLED", "REFUSED"] },
+        creditDueDate: { lt: new Date() },
+        payments: { some: { method: "CREDIT", status: { in: ["PENDING", "DECLARED"] } } },
       },
       select: { id: true },
     });
     if (overdue) {
       return { ok: false, error: "Une facture à crédit est en retard. Réglez-la ou payez comptant." };
     }
+    const availableCredit = Math.max(0, client.creditLimit - client.balanceDue);
+    if (availableCredit <= 0) {
+      return { ok: false, error: "Crédit épuisé. Réglez votre encours ou payez comptant." };
+    }
+    creditAmount = Math.min(total, availableCredit);
+    remainderAmount = total - creditAmount;
+    if (remainderAmount > 0) {
+      remainderMethod =
+        input.remainderMethod === "WAVE" || input.remainderMethod === "CASH_ON_DELIVERY"
+          ? input.remainderMethod
+          : "CASH_ON_DELIVERY";
+    }
+  } else if (input.paymentMethod === "WAVE" || input.paymentMethod === "CASH_ON_DELIVERY") {
+    creditAmount = 0;
+    remainderAmount = total;
+    remainderMethod = input.paymentMethod;
+  } else {
+    return { ok: false, error: "Mode de paiement indisponible." };
+  }
+
+  const paymentRows: {
+    amount: number;
+    method: "CREDIT" | "WAVE" | "CASH_ON_DELIVERY";
+    status: "PENDING";
+    clientId: string;
+  }[] = [];
+  if (creditAmount > 0) {
+    paymentRows.push({ amount: creditAmount, method: "CREDIT", status: "PENDING", clientId: client.id });
+  }
+  if (remainderAmount > 0 && remainderMethod) {
+    paymentRows.push({
+      amount: remainderAmount,
+      method: remainderMethod,
+      status: "PENDING",
+      clientId: client.id,
+    });
   }
 
   const reference = await generateOrderReference();
@@ -189,10 +226,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           commissionAmount,
           deliveryFee,
           total,
-          paymentMethod: input.paymentMethod,
+          paymentMethod: creditAmount > 0 ? "CREDIT" : (remainderMethod ?? "CASH_ON_DELIVERY"),
           paymentStatus: "PENDING",
+          creditAmount,
+          remainderAmount,
+          remainderMethod,
           creditDueDate:
-            input.paymentMethod === "CREDIT"
+            creditAmount > 0
               ? new Date(Date.now() + creditDelay * 24 * 60 * 60 * 1000)
               : null,
           acceptDeadline,
@@ -210,21 +250,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             })),
           },
           delivery: { create: { status: "PENDING" } },
-          payments: {
-            create: {
-              amount: total,
-              method: input.paymentMethod,
-              status: "PENDING",
-              clientId: client.id,
-            },
-          },
+          payments: { create: paymentRows },
         },
       });
 
-      if (input.paymentMethod === "CREDIT") {
+      if (creditAmount > 0) {
         await tx.client.update({
           where: { id: client.id },
-          data: { balanceDue: { increment: total } },
+          data: { balanceDue: { increment: creditAmount } },
         });
       }
 

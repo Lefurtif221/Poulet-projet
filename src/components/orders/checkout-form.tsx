@@ -31,10 +31,24 @@ function earliestDate(): string {
 }
 
 const PAYMENTS: { value: PaymentMethod; label: string; hint: string; icon: string }[] = [
-  { value: "WAVE", label: "Wave", hint: "Paiement immédiat — numéro communiqué après validation", icon: "bolt" },
-  { value: "ORANGE_MONEY", label: "Orange Money", hint: "Paiement immédiat — numéro communiqué après validation", icon: "phone_iphone" },
-  { value: "CASH_ON_DELIVERY", label: "Paiement à la livraison", hint: "Espèces ou mobile money à la réception", icon: "payments" },
-  { value: "CREDIT", label: "Crédit B2B", hint: "Facture à échéance, si votre compte est autorisé", icon: "account_balance_wallet" },
+  {
+    value: "WAVE",
+    label: "Wave",
+    hint: "Paie via le lien Wave de la commande, puis déclare ton paiement",
+    icon: "bolt",
+  },
+  {
+    value: "CASH_ON_DELIVERY",
+    label: "Paiement à la livraison",
+    hint: "Espèces ou mobile money à la réception",
+    icon: "payments",
+  },
+  {
+    value: "CREDIT",
+    label: "Crédit B2B",
+    hint: "Utilise ton crédit disponible, le complément est payé à la livraison ou par Wave",
+    icon: "account_balance_wallet",
+  },
 ];
 
 export function CheckoutForm({
@@ -65,6 +79,7 @@ export function CheckoutForm({
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("WAVE");
+  const [remainderMethod, setRemainderMethod] = useState<"WAVE" | "CASH_ON_DELIVERY">("WAVE");
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("INDIVIDUAL");
   const [state, action] = useActionState(createOrderAction, initial);
 
@@ -95,7 +110,9 @@ export function CheckoutForm({
   const total = subtotal + fee;
   const missing = Math.max(0, minOrder - subtotal);
   const creditAvailable = Math.max(0, creditLimit - balanceDue);
-  const creditAllowed = creditLimit > 0 && creditAvailable >= total;
+  const creditAllowed = creditLimit > 0 && creditAvailable > 0;
+  const creditUsed = method === "CREDIT" ? Math.min(total, creditAvailable) : 0;
+  const remainderDue = total - creditUsed;
   const groupageDate = new Date(
     Date.UTC(
       new Date().getUTCFullYear(),
@@ -297,15 +314,24 @@ export function CheckoutForm({
                     disabled={disabled}
                     className="h-4 w-4 accent-[#185338]"
                   />
-                  <span className="pointer-events-none flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-primary-container">
-                    <Icon name={option.icon} className="text-lg" />
-                  </span>
+                  {option.value === "WAVE" ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src="/brand/wave-icon.svg"
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="pointer-events-none flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-primary-container">
+                      <Icon name={option.icon} className="text-lg" />
+                    </span>
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{option.label}</span>
                     <span className="block text-[11px] text-on-surface-variant">
                       {option.value === "CREDIT"
                         ? creditLimit > 0
-                          ? `Disponible : ${formatFCFA(creditAvailable)} · échéance ${creditDelayDays} jours`
+                          ? `Disponible : ${formatFCFA(creditAvailable)} · utilisé : ${formatFCFA(creditUsed)} · complément : ${formatFCFA(remainderDue)}`
                           : "Non activé sur votre compte"
                         : option.hint}
                     </span>
@@ -316,10 +342,43 @@ export function CheckoutForm({
           </div>
 
           {method === "CREDIT" ? (
-            <Alert tone="info">
-              Le montant sera ajouté à votre encours. Échéance à {creditDelayDays} jours. Tout retard
-              bloque le crédit et les nouvelles commandes à crédit.
-            </Alert>
+            <div className="space-y-2">
+              <Alert tone="info">
+                Crédit utilisé : {formatFCFA(creditUsed)} (échéance {creditDelayDays} jours).
+                Complément : {formatFCFA(remainderDue)}. Le crédit est ajouté à votre encours et
+                doit être réglé avant vos prochaines commandes à crédit.
+              </Alert>
+
+              {remainderDue > 0 ? (
+                <div className="rounded-lg border border-outline-variant/40 bg-surface-container-low p-3">
+                  <p className="text-xs font-semibold">Comment payer le complément ?</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-outline-variant/50 bg-white px-2.5 py-2 text-xs">
+                      <input
+                        type="radio"
+                        name="remainderMethodChoice"
+                        checked={remainderMethod === "WAVE"}
+                        onChange={() => setRemainderMethod("WAVE")}
+                        className="h-3.5 w-3.5 accent-[#185338]"
+                      />
+                      Par Wave
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-outline-variant/50 bg-white px-2.5 py-2 text-xs">
+                      <input
+                        type="radio"
+                        name="remainderMethodChoice"
+                        checked={remainderMethod === "CASH_ON_DELIVERY"}
+                        onChange={() => setRemainderMethod("CASH_ON_DELIVERY")}
+                        className="h-3.5 w-3.5 accent-[#185338]"
+                      />
+                      À la livraison
+                    </label>
+                  </div>
+                </div>
+              ) : null}
+
+              <input type="hidden" name="remainderMethod" value={remainderMethod} />
+            </div>
           ) : null}
         </section>
       </div>
@@ -393,6 +452,21 @@ export function CheckoutForm({
               <span className="font-semibold">Total à régler</span>
               <span className="money text-xl">{formatFCFA(total)}</span>
             </div>
+
+            {method === "CREDIT" ? (
+              <div className="space-y-1 rounded-lg bg-surface-container-low p-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Dont crédit</span>
+                  <span className="font-semibold">{formatFCFA(creditUsed)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">
+                    Complément {remainderMethod === "WAVE" ? "Wave" : "à la livraison"}
+                  </span>
+                  <span className="font-semibold">{formatFCFA(remainderDue)}</span>
+                </div>
+              </div>
+            ) : null}
 
             {missing > 0 ? (
               <Alert tone="warning">Commande minimum : encore {formatFCFA(missing)}.</Alert>

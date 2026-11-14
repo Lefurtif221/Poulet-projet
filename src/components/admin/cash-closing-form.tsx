@@ -11,13 +11,13 @@ export function CashClosingForm({
   date,
   cash,
   wave,
-  orangeMoney,
+
   credit,
 }: {
   date: string;
   cash: number;
   wave: number;
-  orangeMoney: number;
+
   credit: number;
 }) {
   const [state, action] = useActionState(createCashClosingAction, initial);
@@ -27,7 +27,7 @@ export function CashClosingForm({
       {state.error ? <Alert tone="danger">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Date" htmlFor="close-date">
           <input id="close-date" name="date" type="date" defaultValue={date} required className="input" />
         </Field>
@@ -36,9 +36,6 @@ export function CashClosingForm({
         </Field>
         <Field label="Wave (FCFA)" htmlFor="close-wave">
           <input id="close-wave" name="wave" type="number" min={0} defaultValue={wave} className="input" />
-        </Field>
-        <Field label="Orange Money (FCFA)" htmlFor="close-om">
-          <input id="close-om" name="orangeMoney" type="number" min={0} defaultValue={orangeMoney} className="input" />
         </Field>
         <Field label="Crédit accordé (FCFA)" htmlFor="close-credit">
           <input id="close-credit" name="credit" type="number" min={0} defaultValue={credit} className="input" />

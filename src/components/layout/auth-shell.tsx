@@ -41,7 +41,7 @@ export function AuthShell({
             {[
               ["verified", "Éleveurs visités et validés par l'équipe"],
               ["ac_unit", "Chaîne du froid contrôlée à la livraison"],
-              ["account_balance_wallet", "Wave, Orange Money ou crédit 7 jours"],
+              ["account_balance_wallet", "Wave ou crédit B2B 7 jours"],
               ["receipt_long", "Factures et historique centralisés"],
             ].map(([icon, label]) => (
               <li key={label} className="flex items-center gap-3">

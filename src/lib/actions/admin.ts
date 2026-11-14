@@ -194,7 +194,7 @@ export async function changeOrderStatusAction(formData: FormData): Promise<void>
       if (order.paymentMethod === "CREDIT") {
         await tx.client.update({
           where: { id: order.clientId },
-          data: { balanceDue: { decrement: order.total } },
+          data: { balanceDue: { decrement: (order.creditAmount || order.total) } },
         });
       }
     });
@@ -273,7 +273,13 @@ export async function recordPaymentAction(formData: FormData): Promise<void> {
       data: { status: "PAID", paidAt: new Date(), reference: reference || null, confirmedById: admin.sub },
     });
     if (payment.orderId) {
-      await tx.order.update({ where: { id: payment.orderId }, data: { paymentStatus: "PAID" } });
+      const remaining = await tx.payment.count({
+        where: { orderId: payment.orderId, id: { not: payment.id }, status: { not: "PAID" } },
+      });
+      await tx.order.update({
+        where: { id: payment.orderId },
+        data: { paymentStatus: remaining === 0 ? "PAID" : "PENDING" },
+      });
     }
     if (payment.method === "CREDIT" && payment.clientId) {
       const client = await tx.client.findUnique({ where: { id: payment.clientId } });

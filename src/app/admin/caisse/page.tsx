@@ -26,7 +26,7 @@ export default async function AdminCashPage() {
         createdAt: { gte: startOfDay, lt: endOfDay },
         status: { notIn: ["CANCELLED", "REFUSED"] },
       },
-      select: { total: true },
+      select: { creditAmount: true },
     }),
     db.cashClosing.findMany({
       include: { closedBy: { select: { name: true } } },
@@ -39,23 +39,21 @@ export default async function AdminCashPage() {
     payments.filter((payment) => payment.method === method).reduce((total, payment) => total + payment.amount, 0);
   const cash = sum("CASH_ON_DELIVERY");
   const wave = sum("WAVE");
-  const orangeMoney = sum("ORANGE_MONEY");
-  const credit = creditOrders.reduce((total, order) => total + order.total, 0);
-  const total = cash + wave + orangeMoney;
+  const credit = creditOrders.reduce((total, order) => total + order.creditAmount, 0);
+  const total = cash + wave;
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-2xl font-bold tracking-tight">Clôture de caisse</h1>
         <p className="text-sm text-on-surface-variant">
-          Rapprochement quotidien entre l&apos;application, Wave, Orange Money et les espèces.
+          Rapprochement quotidien entre l&apos;application, Wave et les espèces.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Espèces aujourd'hui" value={formatFCFA(cash)} icon="payments" />
         <StatCard label="Wave aujourd'hui" value={formatFCFA(wave)} icon="bolt" tone="success" />
-        <StatCard label="Orange Money aujourd'hui" value={formatFCFA(orangeMoney)} icon="phone_iphone" />
         <StatCard label="Crédit accordé aujourd'hui" value={formatFCFA(credit)} icon="credit_card" tone="warning" />
       </div>
 
@@ -68,7 +66,7 @@ export default async function AdminCashPage() {
           Total encaissé aujourd&apos;hui : {formatFCFA(total)}. Ajuste les montants réels constatés
           avant d&apos;enregistrer.
         </p>
-        <CashClosingForm date={today} cash={cash} wave={wave} orangeMoney={orangeMoney} credit={credit} />
+        <CashClosingForm date={today} cash={cash} wave={wave} credit={credit} />
       </Card>
 
       <section>
@@ -86,7 +84,6 @@ export default async function AdminCashPage() {
                   <th>Date</th>
                   <th className="text-right">Espèces</th>
                   <th className="text-right">Wave</th>
-                  <th className="text-right">Orange Money</th>
                   <th className="text-right">Crédit</th>
                   <th className="text-right">Total encaissé</th>
                   <th>Clôturé par</th>
@@ -99,11 +96,10 @@ export default async function AdminCashPage() {
                     <td className="text-xs font-semibold">{formatDate(closing.date)}</td>
                     <td className="text-right text-xs">{formatFCFA(closing.cash)}</td>
                     <td className="text-right text-xs">{formatFCFA(closing.wave)}</td>
-                    <td className="text-right text-xs">{formatFCFA(closing.orangeMoney)}</td>
                     <td className="text-right text-xs">{formatFCFA(closing.credit)}</td>
                     <td className="text-right">
                       <span className="money text-xs">
-                        {formatFCFA(closing.cash + closing.wave + closing.orangeMoney)}
+                        {formatFCFA(closing.cash + closing.wave)}
                       </span>
                     </td>
                     <td className="text-xs">{closing.closedBy?.name ?? "—"}</td>

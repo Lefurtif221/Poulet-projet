@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Wave">
+  <rect width="64" height="64" rx="14" fill="#35C6F4"/>
+  <ellipse cx="32" cy="58" rx="16" ry="3.5" fill="#0B1B24" opacity="0.18"/>
+  <path d="M18.5 51 C15.5 44 16 33 19 25 C21.5 17 26 12.5 32 12.5 C38 12.5 42.5 17 45 25 C48 33 48.5 44 45.5 51 C42 56 22 56 18.5 51 Z" fill="#111111"/>
+  <path d="M14.5 37 C11 32 9 26 12 23 C14.5 20.5 18 22.5 20 27 C21.5 30.5 21 35 19.5 38 Z" fill="#111111"/>
+  <ellipse cx="32" cy="40.5" rx="8.2" ry="11.2" fill="#FFFFFF"/>
+  <circle cx="27.2" cy="23.5" r="3.6" fill="#FFFFFF"/>
+  <circle cx="36.8" cy="23.5" r="3.6" fill="#FFFFFF"/>
+  <circle cx="27.8" cy="24" r="1.5" fill="#111111"/>
+  <circle cx="36.2" cy="24" r="1.5" fill="#111111"/>
+  <path d="M32 28.5 C29 28.5 26.8 30 26.8 31.8 C26.8 33.6 29.2 35 32 35 C34.8 35 37.2 33.6 37.2 31.8 C37.2 30 35 28.5 32 28.5 Z" fill="#FF7A18"/>
+  <ellipse cx="25.5" cy="54.5" rx="6" ry="3.6" fill="#FF7A18"/>
+  <ellipse cx="38.5" cy="54.5" rx="6" ry="3.6" fill="#FF7A18"/>
+</svg>

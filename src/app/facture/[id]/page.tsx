@@ -28,8 +28,13 @@ export default async function InvoicePage({ params }: { params: Params }) {
   ]);
   if (!order) notFound();
 
-  const payment = order.payments[0];
   const backHref = user.role === "ADMIN" ? `/admin/commandes/${order.id}` : `/client/commande/${order.id}`;
+  const paymentLabel =
+    order.creditAmount > 0
+      ? order.remainderAmount > 0
+        ? `Crédit + ${order.remainderMethod === "WAVE" ? "Wave" : "comptant"}`
+        : "Crédit B2B"
+      : PAYMENT_METHOD[order.paymentMethod].label;
 
   return (
     <div className="min-h-screen bg-[#eef1f5] px-3 py-6 print:bg-white print:p-0">
@@ -78,7 +83,7 @@ export default async function InvoicePage({ params }: { params: Params }) {
             <p className="mt-1 text-sm font-semibold">{order.supplier.farmName}</p>
             <p className="text-xs text-on-surface-variant">{order.supplier.location}</p>
             <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">Règlement</p>
-            <p className="text-sm">{PAYMENT_METHOD[order.paymentMethod].label}</p>
+            <p className="text-sm">{paymentLabel}</p>
           </div>
         </section>
 
@@ -124,8 +129,20 @@ export default async function InvoicePage({ params }: { params: Params }) {
           </div>
           <div className="flex justify-between text-xs text-on-surface-variant">
             <span>Statut du règlement</span>
-            <span>{payment?.status === "PAID" ? "Payé" : "En attente"}</span>
+            <span>{order.paymentStatus === "PAID" ? "Payé" : "En attente"}</span>
           </div>
+          {order.creditAmount > 0 ? (
+            <div className="flex justify-between text-xs text-on-surface-variant">
+              <span>Dont crédit</span>
+              <span>{formatFCFA(order.creditAmount)}</span>
+            </div>
+          ) : null}
+          {order.remainderAmount > 0 && order.creditAmount > 0 ? (
+            <div className="flex justify-between text-xs text-on-surface-variant">
+              <span>Complément {order.remainderMethod === "WAVE" ? "Wave" : "à la livraison"}</span>
+              <span>{formatFCFA(order.remainderAmount)}</span>
+            </div>
+          ) : null}
           {order.creditDueDate ? (
             <div className="flex justify-between text-xs text-on-surface-variant">
               <span>Échéance crédit</span>

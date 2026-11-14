@@ -52,7 +52,7 @@ export default function LegalTermsPage() {
         <section>
           <h2 className="font-display text-lg font-semibold text-on-surface">5. Paiement et crédit</h2>
           <p className="mt-1">
-            Les moyens acceptés sont Wave, Orange Money, le paiement à la livraison et le crédit B2B.
+            Les moyens acceptés sont Wave, le paiement à la livraison et le crédit B2B.
             Le crédit n&apos;est jamais automatique : il est accordé par l&apos;administration avec un
             plafond et un délai. Tout retard peut entraîner le blocage du crédit et des commandes à
             crédit jusqu&apos;au règlement.

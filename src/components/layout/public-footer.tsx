@@ -28,7 +28,7 @@ export function PublicFooter() {
         <div>
           <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">Paiement &amp; crédit</p>
           <ul className="space-y-1.5 text-sm">
-            <li>Wave Business &amp; Orange Money</li>
+            <li>Wave Business</li>
             <li>Paiement à la livraison</li>
             <li>Crédit B2B après validation</li>
             <li>Factures conformes</li>

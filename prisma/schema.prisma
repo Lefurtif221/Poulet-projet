@@ -243,6 +243,9 @@ model Order {
   paymentMethod    PaymentMethod
   paymentStatus    PaymentStatus   @default(PENDING)
   paymentLink      String?
+  creditAmount     Int             @default(0)
+  remainderAmount  Int             @default(0)
+  remainderMethod  PaymentMethod?
   creditDueDate    DateTime?
   acceptDeadline   DateTime
   refusalReason    String?

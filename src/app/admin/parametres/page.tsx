@@ -228,17 +228,6 @@ export default async function AdminSettingsPage() {
                 </label>
                 <input id="waveNumber" name="waveNumber" defaultValue={settings.waveNumber} className="input" />
               </div>
-              <div>
-                <label className="field-label" htmlFor="orangeMoneyNumber">
-                  Numéro Orange Money
-                </label>
-                <input
-                  id="orangeMoneyNumber"
-                  name="orangeMoneyNumber"
-                  defaultValue={settings.orangeMoneyNumber}
-                  className="input"
-                />
-              </div>
               <div className="sm:col-span-2">
                 <label className="field-label" htmlFor="wavePaymentLink">
                   Lien de paiement Wave par défaut (optionnel)

@@ -3,13 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime, formatFCFA, formatPhone } from "@/lib/format";
-import { ORDER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, PRODUCT_UNIT } from "@/lib/labels";
+import { ORDER_STATUS, PAYMENT_METHOD, PRODUCT_UNIT } from "@/lib/labels";
 import {
   Alert,
   ButtonLink,
   Card,
   DeliveryBadge,
   Icon,
+  PaymentBadge,
   StatusBadge,
 } from "@/components/ui";
 import { OrderTimeline } from "@/components/orders/order-timeline";
@@ -60,7 +61,6 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
   ]);
   if (!order) notFound();
 
-  const payment = order.payments[0];
   const logs = await db.activityLog.findMany({
     where: { entity: "Order", entityId: order.id },
     orderBy: { createdAt: "desc" },
@@ -367,81 +367,92 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
             <h2 className="font-display text-base font-semibold">Paiement client</h2>
             <div className="mt-2 space-y-1 text-xs">
               <p>
-                <span className="text-on-surface-variant">Moyen : </span>
-                {PAYMENT_METHOD[order.paymentMethod].label}
+                <span className="text-on-surface-variant">Total : </span>
+                <span className="money">{formatFCFA(order.total)}</span>
               </p>
-              <p>
-                <span className="text-on-surface-variant">Statut : </span>
-                {payment ? PAYMENT_STATUS[payment.status].label : "—"}
-              </p>
-              {order.creditDueDate ? (
+              {order.creditAmount > 0 ? (
                 <p>
-                  <span className="text-on-surface-variant">Échéance : </span>
-                  {formatDate(order.creditDueDate)}
+                  <span className="text-on-surface-variant">Dont crédit : </span>
+                  {formatFCFA(order.creditAmount)} · échéance {formatDate(order.creditDueDate)}
                 </p>
               ) : null}
-              {payment?.reference ? (
+              {order.remainderAmount > 0 ? (
                 <p>
-                  <span className="text-on-surface-variant">Référence : </span>
-                  {payment.reference}
-                </p>
-              ) : null}
-              {payment?.declaredAt ? (
-                <p>
-                  <span className="text-on-surface-variant">Déclaré le : </span>
-                  {formatDateTime(payment.declaredAt)}
+                  <span className="text-on-surface-variant">Complément : </span>
+                  {formatFCFA(order.remainderAmount)} ·{" "}
+                  {order.remainderMethod === "WAVE" ? "Wave" : "à la livraison"}
                 </p>
               ) : null}
             </div>
 
-            {payment?.proofUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={payment.proofUrl}
-                alt="Preuve de paiement"
-                className="mt-2 max-h-48 w-full rounded-lg border border-outline-variant/40 object-cover"
-              />
+            {order.payments.some((item) => item.method === "WAVE") ? (
+              <form action={setOrderPaymentLinkAction} className="mt-3 space-y-2 border-t border-outline-variant/30 pt-3">
+                <input type="hidden" name="orderId" value={order.id} />
+                <label className="field-label" htmlFor="paymentLink">
+                  Lien Wave de cette commande
+                </label>
+                <input
+                  id="paymentLink"
+                  name="paymentLink"
+                  type="url"
+                  defaultValue={order.paymentLink ?? ""}
+                  placeholder="https://pay.wave.com/…"
+                  className="input h-9 text-xs"
+                />
+                <PendingButton variant="outline" size="sm" className="w-full" pendingLabel="Enregistrement…">
+                  <Icon name="save" className="text-base" />
+                  Enregistrer le lien Wave
+                </PendingButton>
+                <p className="text-[10px] text-on-surface-variant">
+                  Crée le lien dans Wave Business pour le montant exact, puis colle-le ici.
+                </p>
+              </form>
             ) : null}
 
-            <form action={setOrderPaymentLinkAction} className="mt-3 space-y-2 border-t border-outline-variant/30 pt-3">
-              <input type="hidden" name="orderId" value={order.id} />
-              <label className="field-label" htmlFor="paymentLink">
-                Lien Wave de cette commande
-              </label>
-              <input
-                id="paymentLink"
-                name="paymentLink"
-                type="url"
-                defaultValue={order.paymentLink ?? ""}
-                placeholder="https://pay.wave.com/…"
-                className="input h-9 text-xs"
-              />
-              <PendingButton variant="outline" size="sm" className="w-full" pendingLabel="Enregistrement…">
-                <Icon name="save" className="text-base" />
-                Enregistrer le lien Wave
-              </PendingButton>
-              <p className="text-[10px] text-on-surface-variant">
-                Crée le lien dans Wave Business pour le montant exact, puis colle-le ici. Le client
-                verra un bouton « Payer avec Wave ».
-              </p>
-            </form>
+            <div className="mt-3 space-y-2 border-t border-outline-variant/30 pt-3">
+              {order.payments.map((item) => (
+                <div key={item.id} className="rounded-lg border border-outline-variant/40 p-2.5">
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold">
+                      {PAYMENT_METHOD[item.method].label} · {formatFCFA(item.amount)}
+                    </span>
+                    <PaymentBadge status={item.status} />
+                  </div>
+                  {item.reference ? (
+                    <p className="mt-1 text-[11px] text-on-surface-variant">
+                      Référence : {item.reference}
+                      {item.declaredAt ? ` · déclaré le ${formatDateTime(item.declaredAt)}` : ""}
+                    </p>
+                  ) : null}
+                  {item.proofUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.proofUrl}
+                      alt="Preuve de paiement"
+                      className="mt-2 max-h-40 w-full rounded-lg border border-outline-variant/40 object-cover"
+                    />
+                  ) : null}
+                  {["PENDING", "DECLARED"].includes(item.status) ? (
+                    <form action={recordPaymentAction} className="mt-2 flex items-center gap-1.5">
+                      <input type="hidden" name="paymentId" value={item.id} />
+                      <input
+                        name="reference"
+                        defaultValue={item.reference ?? ""}
+                        className="input h-8 flex-1 text-[11px]"
+                        placeholder="Réf. Wave / reçu"
+                      />
+                      <PendingButton size="sm" pendingLabel="…">
+                        <Icon name="check" className="text-base" />
+                        Confirmer
+                      </PendingButton>
+                    </form>
+                  ) : null}
+                </div>
+              ))}
+            </div>
 
-            {payment && ["PENDING", "DECLARED"].includes(payment.status) ? (
-              <form action={recordPaymentAction} className="mt-3 space-y-2 border-t border-outline-variant/30 pt-3">
-                <input type="hidden" name="paymentId" value={payment.id} />
-                <input
-                  name="reference"
-                  defaultValue={payment.reference ?? ""}
-                  className="input h-9 text-xs"
-                  placeholder="Réf. Wave / OM / reçu"
-                />
-                <PendingButton size="sm" className="w-full" pendingLabel="Confirmation…">
-                  <Icon name="check_circle" className="text-base" />
-                  Marquer comme payé
-                </PendingButton>
-              </form>
-            ) : payment?.status === "PAID" ? (
-              <Alert tone="success">Paiement confirmé.</Alert>
+            {order.paymentStatus === "PAID" ? (
+              <Alert tone="success">Commande entièrement réglée.</Alert>
             ) : null}
           </Card>
 

@@ -33,7 +33,7 @@ export default async function CreditPage() {
         paymentMethod: "CREDIT",
         status: { notIn: ["CANCELLED", "REFUSED"] },
       },
-      include: { supplier: true },
+      include: { supplier: true, payments: true },
       orderBy: { createdAt: "desc" },
       take: 40,
     }),
@@ -46,7 +46,11 @@ export default async function CreditPage() {
   ]);
 
   const now = new Date();
-  const outstanding = creditOrders.filter((order) => order.paymentStatus === "PENDING");
+  const outstanding = creditOrders.filter((order) =>
+    order.payments.some(
+      (payment) => payment.method === "CREDIT" && ["PENDING", "DECLARED"].includes(payment.status)
+    )
+  );
   const overdue = outstanding.filter((order) => order.creditDueDate && order.creditDueDate < now);
   const nextDue = outstanding
     .map((order) => order.creditDueDate)
@@ -68,7 +72,7 @@ export default async function CreditPage() {
       {!creditActive ? (
         <Alert tone="info" title="Crédit non activé">
           Le crédit est accordé manuellement après vérification de votre activité. Vous pouvez commander
-          comptant (Wave, Orange Money ou à la livraison). Demandez l&apos;activation au{" "}
+          comptant (Wave ou à la livraison). Demandez l&apos;activation au{" "}
           {settings.supportPhone}.
         </Alert>
       ) : null}
@@ -160,7 +164,7 @@ export default async function CreditPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="money text-base">{formatFCFA(order.total)}</p>
+                      <p className="money text-base">{formatFCFA(order.creditAmount)}</p>
                       <p className={`text-[11px] ${late ? "font-semibold text-red-700" : "text-on-surface-variant"}`}>
                         Échéance : {formatDate(order.creditDueDate)}
                       </p>

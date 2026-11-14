@@ -251,7 +251,7 @@ export async function refuseOrderAction(
     if (order.paymentMethod === "CREDIT") {
       await tx.client.update({
         where: { id: order.clientId },
-        data: { balanceDue: { decrement: order.total } },
+        data: { balanceDue: { decrement: (order.creditAmount || order.total) } },
       });
     }
   });

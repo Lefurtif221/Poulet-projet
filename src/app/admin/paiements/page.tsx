@@ -286,7 +286,7 @@ export default async function AdminPaymentsPage() {
                           <input type="hidden" name="payoutId" value={payout.id} />
                           <input
                             name="reference"
-                            placeholder="Réf. virement Wave / OM"
+                            placeholder="Réf. virement"
                             className="input h-9 min-w-40 flex-1 text-[11px]"
                             aria-label="Référence du virement"
                           />

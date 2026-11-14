@@ -70,6 +70,7 @@ export async function GET(request: Request) {
       address: recurring.address ?? recurring.client.address,
       note: recurring.note ?? undefined,
       paymentMethod: recurring.paymentMethod,
+      remainderMethod: "CASH_ON_DELIVERY",
       items: recurring.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,

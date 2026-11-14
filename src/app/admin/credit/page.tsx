@@ -15,6 +15,7 @@ export default async function AdminCreditPage() {
       user: true,
       orders: {
         where: { paymentMethod: "CREDIT", status: { notIn: ["CANCELLED", "REFUSED"] } },
+        include: { payments: true },
         orderBy: { creditDueDate: "asc" },
         take: 10,
       },
@@ -23,9 +24,13 @@ export default async function AdminCreditPage() {
   });
 
   const totalOutstanding = clients.reduce((total, client) => total + client.balanceDue, 0);
+  const hasPendingCredit = (order: (typeof clients)[number]["orders"][number]) =>
+    order.payments.some(
+      (payment) => payment.method === "CREDIT" && ["PENDING", "DECLARED"].includes(payment.status)
+    );
   const overdueClients = clients.filter((client) =>
     client.orders.some(
-      (order) => order.paymentStatus === "PENDING" && order.creditDueDate && order.creditDueDate < new Date()
+      (order) => hasPendingCredit(order) && order.creditDueDate && order.creditDueDate < new Date()
     )
   );
 
@@ -71,9 +76,9 @@ export default async function AdminCreditPage() {
         {clients.map((client) => {
           const phoneDigits = client.user.phone.replace(/\D/g, "");
           const overdue = client.orders.filter(
-            (order) => order.paymentStatus === "PENDING" && order.creditDueDate && order.creditDueDate < new Date()
+            (order) => hasPendingCredit(order) && order.creditDueDate && order.creditDueDate < new Date()
           );
-          const pending = client.orders.filter((order) => order.paymentStatus === "PENDING");
+          const pending = client.orders.filter(hasPendingCredit);
           const ratio = client.creditLimit > 0 ? (client.balanceDue / client.creditLimit) * 100 : 0;
           return (
             <Card key={client.id} className="p-4">
@@ -129,14 +134,14 @@ export default async function AdminCreditPage() {
                     {pending.slice(0, 5).map((order) => {
                       const late = order.creditDueDate && order.creditDueDate < new Date();
                       const reminder = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(
-                        `Bonjour ${client.establishment}, la facture ${order.reference} de ${formatFCFA(order.total)} est échue depuis le ${formatDate(order.creditDueDate)}. Merci de régulariser pour conserver votre crédit. SunuVolaille`
+                        `Bonjour ${client.establishment}, la facture ${order.reference} de ${formatFCFA(order.creditAmount)} est échue depuis le ${formatDate(order.creditDueDate)}. Merci de régulariser pour conserver votre crédit. SunuVolaille`
                       )}`;
                       return (
                         <li key={order.id} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px]">
                           <span className="font-semibold">#{order.reference}</span>
                           <span className="text-on-surface-variant">{formatDate(order.creditDueDate)}</span>
                           <span className={late ? "font-bold text-red-700" : "text-on-surface-variant"}>
-                            {formatFCFA(order.total)}
+                            {formatFCFA(order.creditAmount)}
                           </span>
                           {late ? (
                             <a

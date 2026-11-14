@@ -26,7 +26,8 @@ const orderSchema = z.object({
   deliveryMode: z.enum(["GROUPAGE", "INDIVIDUAL"]).default("INDIVIDUAL"),
   address: z.string().trim().min(5, "Adresse de livraison requise"),
   note: z.string().trim().optional(),
-  paymentMethod: z.enum(["WAVE", "ORANGE_MONEY", "CASH_ON_DELIVERY", "CREDIT", "BANK_TRANSFER"]),
+  paymentMethod: z.enum(["WAVE", "CASH_ON_DELIVERY", "CREDIT"]),
+  remainderMethod: z.enum(["WAVE", "CASH_ON_DELIVERY"]).optional(),
   items: z.string(),
 });
 
@@ -81,6 +82,7 @@ export async function createOrderAction(
     address: parsed.data.address,
     note: parsed.data.note,
     paymentMethod: parsed.data.paymentMethod as PaymentMethod,
+    remainderMethod: parsed.data.remainderMethod,
     items: items.data,
   });
 
@@ -139,7 +141,7 @@ export async function cancelOrderAction(formData: FormData): Promise<void> {
     if (order.paymentMethod === "CREDIT") {
       await tx.client.update({
         where: { id: order.clientId },
-        data: { balanceDue: { decrement: order.total } },
+        data: { balanceDue: { decrement: (order.creditAmount || order.total) } },
       });
     }
   });
@@ -231,12 +233,10 @@ export async function declarePaymentAction(
   if (order.paymentStatus === "PAID") {
     return { error: "Cette commande est déjà réglée." };
   }
-  if (!["WAVE", "ORANGE_MONEY", "BANK_TRANSFER"].includes(order.paymentMethod)) {
-    return { error: "Ce mode de règlement ne nécessite pas de preuve en ligne." };
-  }
-
-  const payment = order.payments.find((item) => item.status !== "PAID") ?? order.payments[0];
-  if (!payment) return { error: "Paiement introuvable pour cette commande." };
+  const payment = order.payments.find(
+    (item) => item.method === "WAVE" && ["PENDING", "DECLARED"].includes(item.status)
+  );
+  if (!payment) return { error: "Aucun paiement Wave en attente sur cette commande." };
 
   let proofUrl: string | null = null;
   try {
@@ -269,7 +269,7 @@ export async function declarePaymentAction(
       orderId: order.id,
       recipient: adminUser.phone,
       event: "PAYMENT_DECLARED",
-      message: `Paiement déclaré sur ${order.reference} (${order.total.toLocaleString("fr-FR")} FCFA)${reference ? ` — réf. ${reference}` : ""}. À vérifier dans Wave / Orange Money.`,
+      message: `Paiement Wave déclaré sur ${order.reference} (${payment.amount.toLocaleString("fr-FR")} FCFA)${reference ? ` — réf. ${reference}` : ""}. À vérifier dans Wave.`,
     });
   }
 
@@ -311,7 +311,14 @@ export async function reorderAction(formData: FormData): Promise<void> {
     deliveryMode: order.deliveryMode,
     address: order.address,
     note: order.note ?? undefined,
-    paymentMethod: order.paymentMethod === "CREDIT" ? "CREDIT" : order.paymentMethod,
+    paymentMethod:
+      order.paymentMethod === "CREDIT"
+        ? "CREDIT"
+        : order.paymentMethod === "WAVE"
+          ? "WAVE"
+          : "CASH_ON_DELIVERY",
+    remainderMethod:
+      order.remainderMethod === "WAVE" ? "WAVE" : "CASH_ON_DELIVERY",
     items: order.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,

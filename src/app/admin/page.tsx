@@ -63,12 +63,13 @@ export default async function AdminDashboard() {
     }),
     db.order.aggregate({
       where: {
-        paymentMethod: "CREDIT",
-        paymentStatus: "PENDING",
         creditDueDate: { lt: now },
         status: { notIn: ["CANCELLED", "REFUSED"] },
+        payments: {
+          some: { method: "CREDIT", status: { in: ["PENDING", "DECLARED"] } },
+        },
       },
-      _sum: { total: true },
+      _sum: { creditAmount: true },
       _count: true,
     }),
     db.client.findMany({
@@ -101,7 +102,7 @@ export default async function AdminDashboard() {
   const punctuality = delivered.length > 0 ? Math.round((onTime / delivered.length) * 100) : 100;
 
   const gmvMonth = monthGmv._sum.total ?? 0;
-  const overdueAmount = overdueCredit._sum.total ?? 0;
+  const overdueAmount = overdueCredit._sum.creditAmount ?? 0;
   const overdueRate = gmvMonth > 0 ? (overdueAmount / gmvMonth) * 100 : 0;
 
   return (

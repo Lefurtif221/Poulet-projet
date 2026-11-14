@@ -44,7 +44,7 @@ export function PaymentProofForm({ orderId }: { orderId: string }) {
         J&apos;ai payé
       </PendingButton>
       <p className="text-[10px] text-on-surface-variant">
-        L&apos;administrateur vérifie le paiement dans Wave / Orange Money avant de le confirmer.
+        L&apos;administrateur vérifie le paiement dans Wave avant de le confirmer.
       </p>
     </form>
   );
