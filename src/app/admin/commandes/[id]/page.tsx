@@ -136,7 +136,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
                   <tr key={item.id}>
                     <td>
                       <p className="font-semibold">{item.productName}</p>
-                      <p className="text-[11px] text-on-surface-variant">{PRODUCT_UNIT[item.unit]}</p>
+                      <p className="text-[11px] text-on-surface-variant">
+                        {PRODUCT_UNIT[item.unit]}
+                        {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
+                      </p>
                     </td>
                     <td className="text-right tabular-nums">{item.quantity}</td>
                     <td className="text-right tabular-nums">{item.quantityDelivered ?? "—"}</td>

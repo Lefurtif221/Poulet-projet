@@ -69,7 +69,7 @@ export default async function AdminSettingsPage() {
               </div>
               <div>
                 <label className="field-label" htmlFor="deliveryFee">
-                  Frais de livraison (FCFA)
+                  Livraison individuelle (FCFA)
                 </label>
                 <input
                   id="deliveryFee"
@@ -77,6 +77,56 @@ export default async function AdminSettingsPage() {
                   type="number"
                   min={0}
                   defaultValue={settings.deliveryFee}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="groupageDeliveryFee">
+                  Livraison groupée (FCFA)
+                </label>
+                <input
+                  id="groupageDeliveryFee"
+                  name="groupageDeliveryFee"
+                  type="number"
+                  min={0}
+                  defaultValue={settings.groupageDeliveryFee}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="groupageLeadDays">
+                  Délai groupage (jours)
+                </label>
+                <input
+                  id="groupageLeadDays"
+                  name="groupageLeadDays"
+                  type="number"
+                  min={1}
+                  defaultValue={settings.groupageLeadDays}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="groupageSlot">
+                  Créneau groupage
+                </label>
+                <input
+                  id="groupageSlot"
+                  name="groupageSlot"
+                  defaultValue={settings.groupageSlot}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="pluckingFee">
+                  Supplément déplumé (FCFA/unité)
+                </label>
+                <input
+                  id="pluckingFee"
+                  name="pluckingFee"
+                  type="number"
+                  min={0}
+                  defaultValue={settings.pluckingFee}
                   className="input"
                 />
               </div>

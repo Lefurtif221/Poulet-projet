@@ -84,7 +84,7 @@ export default async function OrderDetailPage({
           </div>
           <p className="mt-1 text-sm text-on-surface-variant">
             {order.supplier.farmName} · {order.supplier.location} · {formatDateLong(order.deliveryDate)} ·{" "}
-            {order.deliverySlot}
+            {order.deliverySlot} · {order.deliveryMode === "GROUPAGE" ? "Livraison groupée" : "Livraison individuelle"}
           </p>
           <p className="text-xs text-on-surface-variant">{order.address}</p>
         </div>
@@ -152,6 +152,7 @@ export default async function OrderDetailPage({
                     <p className="text-sm font-semibold">{item.productName}</p>
                     <p className="text-xs text-on-surface-variant">
                       {item.quantity} × {PRODUCT_UNIT[item.unit]} · {formatFCFA(item.unitPrice)} l&apos;unité
+                      {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
                       {item.quantityDelivered != null && item.quantityDelivered !== item.quantity
                         ? ` · livré : ${item.quantityDelivered}`
                         : ""}

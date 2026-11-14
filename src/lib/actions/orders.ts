@@ -17,11 +17,13 @@ export type OrderActionState = { error?: string; success?: string };
 const itemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.coerce.number().int().min(1).max(10000),
+  preparation: z.enum(["STANDARD", "PLUCKED"]).default("STANDARD"),
 });
 
 const orderSchema = z.object({
   deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de livraison invalide"),
   deliverySlot: z.string().min(1, "Choisissez un créneau"),
+  deliveryMode: z.enum(["GROUPAGE", "INDIVIDUAL"]).default("INDIVIDUAL"),
   address: z.string().trim().min(5, "Adresse de livraison requise"),
   note: z.string().trim().optional(),
   paymentMethod: z.enum(["WAVE", "ORANGE_MONEY", "CASH_ON_DELIVERY", "CREDIT", "BANK_TRANSFER"]),
@@ -56,10 +58,15 @@ export async function createOrderAction(
     return { error: "Panier invalide. Ajoutez des produits puis réessayez." };
   }
 
-  const deliveryDate = new Date(`${parsed.data.deliveryDate}T08:00:00.000Z`);
-  if (Number.isNaN(deliveryDate.getTime())) return { error: "Date de livraison invalide." };
-  if (deliveryDate < earliestDeliveryDate()) {
-    return { error: "La livraison doit être programmée au plus tôt demain (ou après-demain après 22h)." };
+  const isGroupage = parsed.data.deliveryMode === "GROUPAGE";
+  const deliveryDate = isGroupage
+    ? new Date()
+    : new Date(`${parsed.data.deliveryDate}T08:00:00.000Z`);
+  if (!isGroupage) {
+    if (Number.isNaN(deliveryDate.getTime())) return { error: "Date de livraison invalide." };
+    if (deliveryDate < earliestDeliveryDate()) {
+      return { error: "La livraison doit être programmée au plus tôt demain (ou après-demain après 22h)." };
+    }
   }
 
   const client = await db.client.findUnique({ where: { userId: user.sub }, select: { id: true } });
@@ -70,6 +77,7 @@ export async function createOrderAction(
     userId: user.sub,
     deliveryDate,
     deliverySlot: parsed.data.deliverySlot,
+    deliveryMode: parsed.data.deliveryMode as "GROUPAGE" | "INDIVIDUAL",
     address: parsed.data.address,
     note: parsed.data.note,
     paymentMethod: parsed.data.paymentMethod as PaymentMethod,
@@ -300,10 +308,15 @@ export async function reorderAction(formData: FormData): Promise<void> {
     userId: user.sub,
     deliveryDate,
     deliverySlot: order.deliverySlot,
+    deliveryMode: order.deliveryMode,
     address: order.address,
     note: order.note ?? undefined,
     paymentMethod: order.paymentMethod === "CREDIT" ? "CREDIT" : order.paymentMethod,
-    items: order.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    items: order.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      preparation: item.preparation,
+    })),
   });
 
   if (!result.ok) redirect(`/client/commande/${order.id}?erreur=${encodeURIComponent(result.error)}`);

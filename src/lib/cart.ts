@@ -2,6 +2,9 @@
 
 import type { ProductUnit } from "@prisma/client";
 
+export type Preparation = "STANDARD" | "PLUCKED";
+export type DeliveryMode = "GROUPAGE" | "INDIVIDUAL";
+
 export type CartItem = {
   productId: string;
   name: string;
@@ -12,9 +15,12 @@ export type CartItem = {
   imageUrl?: string | null;
   quantity: number;
   maxStock: number;
+  preparation: Preparation;
+  preparationFee: number;
 };
 
-const KEY = "guanar_cart_v1";
+const KEY = "guanar_cart_v2";
+const DELIVERY_KEY = "guanar_delivery_mode";
 
 export function readCart(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -22,7 +28,14 @@ export function readCart(): CartItem[] {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CartItem[];
-    return Array.isArray(parsed) ? parsed.filter((item) => item && item.productId && item.quantity > 0) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && item.productId && item.quantity > 0)
+      .map((item) => ({
+        ...item,
+        preparation: item.preparation === "PLUCKED" ? "PLUCKED" : "STANDARD",
+        preparationFee: item.preparation === "PLUCKED" ? Math.max(0, item.preparationFee ?? 0) : 0,
+      }));
   } catch {
     return [];
   }
@@ -41,6 +54,8 @@ export function addToCart(item: Omit<CartItem, "quantity">, quantity: number): v
     existing.quantity = Math.min(item.maxStock, existing.quantity + quantity);
     existing.price = item.price;
     existing.maxStock = item.maxStock;
+    existing.preparation = item.preparation;
+    existing.preparationFee = item.preparationFee;
   } else {
     cart.push({ ...item, quantity: Math.min(item.maxStock, Math.max(1, quantity)) });
   }
@@ -72,4 +87,15 @@ export function cartSubtotal(items: CartItem[]): number {
 
 export function cartCount(items: CartItem[]): number {
   return items.reduce((total, item) => total + item.quantity, 0);
+}
+
+export function readDeliveryMode(): DeliveryMode {
+  if (typeof window === "undefined") return "INDIVIDUAL";
+  return window.localStorage.getItem(DELIVERY_KEY) === "GROUPAGE" ? "GROUPAGE" : "INDIVIDUAL";
+}
+
+export function writeDeliveryMode(mode: DeliveryMode): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(DELIVERY_KEY, mode);
+  window.dispatchEvent(new Event("guanar-delivery-mode"));
 }

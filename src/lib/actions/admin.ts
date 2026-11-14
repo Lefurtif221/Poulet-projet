@@ -579,6 +579,9 @@ export async function updateAdminProductAction(formData: FormData): Promise<void
 const NUMBER_SETTINGS = [
   "commissionRate",
   "deliveryFee",
+  "groupageDeliveryFee",
+  "groupageLeadDays",
+  "pluckingFee",
   "freeDeliveryThreshold",
   "minOrderPro",
   "minOrderParticulier",
@@ -610,7 +613,7 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
     .filter(Boolean);
   if (slots.length > 0) await setSetting("deliverySlots", slots);
 
-  for (const key of ["waveNumber", "orangeMoneyNumber", "wavePaymentLink", "supportPhone", "platformName"] as const) {
+  for (const key of ["waveNumber", "orangeMoneyNumber", "wavePaymentLink", "groupageSlot", "supportPhone", "platformName"] as const) {
     const raw = formData.get(key);
     if (raw !== null && String(raw).trim()) await setSetting(key, String(raw).trim());
   }

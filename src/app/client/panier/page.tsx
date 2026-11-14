@@ -38,6 +38,9 @@ export default async function CartPage() {
         creditDelayDays={client.creditDelayDays || settings.creditDelayDays}
         minOrder={settings.minOrderPro}
         deliveryFee={settings.deliveryFee}
+        groupageFee={settings.groupageDeliveryFee}
+        groupageLeadDays={settings.groupageLeadDays}
+        groupageSlot={settings.groupageSlot}
         freeDeliveryThreshold={settings.freeDeliveryThreshold}
         deliverySlots={settings.deliverySlots}
       />

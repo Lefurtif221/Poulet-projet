@@ -66,10 +66,15 @@ export async function GET(request: Request) {
       userId: recurring.client.userId,
       deliveryDate,
       deliverySlot: recurring.deliverySlot,
+      deliveryMode: "INDIVIDUAL",
       address: recurring.address ?? recurring.client.address,
       note: recurring.note ?? undefined,
       paymentMethod: recurring.paymentMethod,
-      items: recurring.items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      items: recurring.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        preparation: "STANDARD",
+      })),
     });
 
     if (result.ok) {

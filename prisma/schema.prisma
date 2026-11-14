@@ -52,6 +52,16 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum DeliveryMode {
+  GROUPAGE
+  INDIVIDUAL
+}
+
+enum Preparation {
+  STANDARD
+  PLUCKED
+}
+
 enum PaymentMethod {
   WAVE
   ORANGE_MONEY
@@ -220,6 +230,7 @@ model Order {
   recurringOrderId String?
   deliveryDate     DateTime
   deliverySlot     String
+  deliveryMode     DeliveryMode @default(INDIVIDUAL)
   address          String
   note             String?
   status           OrderStatus     @default(SENT)
@@ -267,6 +278,8 @@ model OrderItem {
   unit             ProductUnit
   quantity         Int
   quantityDelivered Int?
+  preparation      Preparation @default(STANDARD)
+  preparationFee   Int          @default(0)
   unitPrice        Int
   supplierUnitPrice Int            @default(0)
   lineTotal        Int

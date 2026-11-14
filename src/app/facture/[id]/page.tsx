@@ -96,7 +96,10 @@ export default async function InvoicePage({ params }: { params: Params }) {
               <tr key={item.id} className="border-b border-outline-variant/25">
                 <td className="py-2">
                   <span className="font-semibold">{item.productName}</span>
-                  <span className="ml-1 text-xs text-on-surface-variant">({PRODUCT_UNIT[item.unit]})</span>
+                  <span className="ml-1 text-xs text-on-surface-variant">
+                    ({PRODUCT_UNIT[item.unit]}
+                    {item.preparation === "PLUCKED" ? " · Déplumé" : ""})
+                  </span>
                 </td>
                 <td className="py-2 text-right tabular-nums">{item.quantity}</td>
                 <td className="py-2 text-right tabular-nums">{formatFCFA(item.unitPrice)}</td>

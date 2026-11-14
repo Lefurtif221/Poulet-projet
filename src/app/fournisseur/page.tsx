@@ -202,6 +202,7 @@ export default async function SupplierDashboard() {
                           <li key={item.id} className="flex justify-between gap-2">
                             <span className="text-on-surface-variant">
                               {item.quantity} × {item.productName}
+                              {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
                             </span>
                             <span className="money">{formatFCFA(item.supplierUnitPrice * item.quantity)}</span>
                           </li>
@@ -268,6 +269,7 @@ export default async function SupplierDashboard() {
                       {order.items.map((item) => (
                         <li key={item.id}>
                           {item.quantity} × {item.productName}
+                          {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
                         </li>
                       ))}
                     </ul>

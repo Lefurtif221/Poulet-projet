@@ -5,7 +5,16 @@ import Link from "next/link";
 import { useActionState } from "react";
 import type { PaymentMethod } from "@prisma/client";
 import { createOrderAction, type OrderActionState } from "@/lib/actions/orders";
-import { cartSubtotal, readCart, updateQuantity, removeFromCart, type CartItem } from "@/lib/cart";
+import {
+  cartSubtotal,
+  readCart,
+  readDeliveryMode,
+  updateQuantity,
+  removeFromCart,
+  writeDeliveryMode,
+  type CartItem,
+  type DeliveryMode,
+} from "@/lib/cart";
 import { formatFCFA } from "@/lib/format";
 import { PRODUCT_UNIT } from "@/lib/labels";
 import { Alert, Field, Icon, buttonClass, EmptyState } from "@/components/ui";
@@ -35,6 +44,9 @@ export function CheckoutForm({
   creditDelayDays,
   minOrder,
   deliveryFee,
+  groupageFee,
+  groupageLeadDays,
+  groupageSlot,
   freeDeliveryThreshold,
   deliverySlots,
 }: {
@@ -44,33 +56,65 @@ export function CheckoutForm({
   creditDelayDays: number;
   minOrder: number;
   deliveryFee: number;
+  groupageFee: number;
+  groupageLeadDays: number;
+  groupageSlot: string;
   freeDeliveryThreshold: number;
   deliverySlots: string[];
 }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("WAVE");
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("INDIVIDUAL");
   const [state, action] = useActionState(createOrderAction, initial);
 
   useEffect(() => {
     const sync = () => {
       setItems(readCart());
+      setDeliveryMode(readDeliveryMode());
       setReady(true);
     };
     sync();
     window.addEventListener("guanar-cart", sync);
-    return () => window.removeEventListener("guanar-cart", sync);
+    window.addEventListener("guanar-delivery-mode", sync);
+    return () => {
+      window.removeEventListener("guanar-cart", sync);
+      window.removeEventListener("guanar-delivery-mode", sync);
+    };
   }, []);
 
+  function chooseMode(mode: DeliveryMode) {
+    setDeliveryMode(mode);
+    writeDeliveryMode(mode);
+  }
+
   const subtotal = cartSubtotal(items);
-  const fee = subtotal >= freeDeliveryThreshold || subtotal === 0 ? 0 : deliveryFee;
+  const isGroupage = deliveryMode === "GROUPAGE";
+  const baseFee = isGroupage ? groupageFee : deliveryFee;
+  const fee = subtotal >= freeDeliveryThreshold || subtotal === 0 ? 0 : baseFee;
   const total = subtotal + fee;
   const missing = Math.max(0, minOrder - subtotal);
   const creditAvailable = Math.max(0, creditLimit - balanceDue);
   const creditAllowed = creditLimit > 0 && creditAvailable >= total;
+  const groupageDate = new Date(
+    Date.UTC(
+      new Date().getUTCFullYear(),
+      new Date().getUTCMonth(),
+      new Date().getUTCDate() + Math.max(1, groupageLeadDays)
+    )
+  )
+    .toISOString()
+    .slice(0, 10);
 
   const payload = useMemo(
-    () => JSON.stringify(items.map((item) => ({ productId: item.productId, quantity: item.quantity }))),
+    () =>
+      JSON.stringify(
+        items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          preparation: item.preparation,
+        }))
+      ),
     [items]
   );
 
@@ -106,28 +150,106 @@ export function CheckoutForm({
             Livraison professionnelle
           </h2>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Date de livraison" htmlFor="deliveryDate">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-lg border p-3",
+                isGroupage ? "border-primary-container bg-primary-fixed/20" : "border-outline-variant/50"
+              )}
+            >
               <input
-                id="deliveryDate"
-                name="deliveryDate"
-                type="date"
-                required
-                min={earliestDate()}
-                defaultValue={earliestDate()}
-                className="input"
+                type="radio"
+                checked={isGroupage}
+                onChange={() => chooseMode("GROUPAGE")}
+                className="mt-1 h-4 w-4 accent-[#185338]"
               />
-            </Field>
-            <Field label="Créneau" htmlFor="deliverySlot">
-              <select id="deliverySlot" name="deliverySlot" required className="input" defaultValue={deliverySlots[0]}>
-                {deliverySlots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
-            </Field>
+              <span className="flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">Livraison groupée</span>
+                  <span className="text-xs font-semibold">
+                    {groupageFee === 0 ? "Offerte" : formatFCFA(groupageFee)}
+                  </span>
+                </span>
+                <span className="block text-[11px] text-on-surface-variant">
+                  Moins chère, à partir du{" "}
+                  {new Date(`${groupageDate}T08:00:00Z`).toLocaleDateString("fr-FR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}{" "}
+                  ({groupageSlot}).
+                </span>
+              </span>
+            </label>
+
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-lg border p-3",
+                !isGroupage ? "border-primary-container bg-primary-fixed/20" : "border-outline-variant/50"
+              )}
+            >
+              <input
+                type="radio"
+                checked={!isGroupage}
+                onChange={() => chooseMode("INDIVIDUAL")}
+                className="mt-1 h-4 w-4 accent-[#185338]"
+              />
+              <span className="flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">Livraison individuelle</span>
+                  <span className="text-xs font-semibold">
+                    {deliveryFee === 0 ? "Offerte" : formatFCFA(deliveryFee)}
+                  </span>
+                </span>
+                <span className="block text-[11px] text-on-surface-variant">
+                  Plus rapide, créneau au choix dès demain.
+                </span>
+              </span>
+            </label>
           </div>
+
+          <input type="hidden" name="deliveryMode" value={deliveryMode} />
+
+          {isGroupage ? (
+            <div className="mt-4 rounded-lg border border-primary-container/30 bg-primary-fixed/20 p-3 text-sm">
+              <p className="font-semibold text-primary">Tournée groupée</p>
+              <p className="mt-1 text-xs text-on-surface-variant">
+                Livraison prévue le{" "}
+                {new Date(`${groupageDate}T08:00:00Z`).toLocaleDateString("fr-FR", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}{" "}
+                sur le créneau {groupageSlot}. Vous pouvez annuler sans frais avant la confirmation
+                de l&apos;éleveur.
+              </p>
+              <input type="hidden" name="deliveryDate" value={groupageDate} />
+              <input type="hidden" name="deliverySlot" value={groupageSlot} />
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Field label="Date de livraison" htmlFor="deliveryDate">
+                <input
+                  id="deliveryDate"
+                  name="deliveryDate"
+                  type="date"
+                  required
+                  min={earliestDate()}
+                  defaultValue={earliestDate()}
+                  className="input"
+                />
+              </Field>
+              <Field label="Créneau" htmlFor="deliverySlot">
+                <select id="deliverySlot" name="deliverySlot" required className="input" defaultValue={deliverySlots[0]}>
+                  {deliverySlots.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          )}
 
           <Field label="Adresse de livraison" htmlFor="address" className="mt-4">
             <input id="address" name="address" required defaultValue={address} className="input" />
@@ -219,6 +341,7 @@ export function CheckoutForm({
                   <p className="truncate text-xs font-semibold">{item.name}</p>
                   <p className="text-[10px] text-on-surface-variant">
                     {item.supplierName} · {formatFCFA(item.price)}/{PRODUCT_UNIT[item.unit]}
+                    {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
                   </p>
                   <div className="mt-1 flex items-center justify-between">
                     <div className="flex items-center rounded border border-outline-variant/60">
@@ -261,7 +384,7 @@ export function CheckoutForm({
               <span className="money text-on-surface">{formatFCFA(subtotal)}</span>
             </div>
             <div className="flex justify-between text-xs text-on-surface-variant">
-              <span>Livraison</span>
+              <span>Livraison {isGroupage ? "groupée" : "individuelle"}</span>
               <span className={fee === 0 ? "font-semibold text-primary-container" : "money"}>
                 {fee === 0 ? "Offerte" : formatFCFA(fee)}
               </span>

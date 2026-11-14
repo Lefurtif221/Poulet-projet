@@ -1,12 +1,7 @@
-import type { PaymentMethod } from "@prisma/client";
+import type { DeliveryMode, PaymentMethod, Preparation } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logActivity, generateOrderReference } from "@/lib/activity";
-import {
-  clientUnitPrice,
-  deliveryFeeFor,
-  getSettings,
-  resolveCommissionRate,
-} from "@/lib/settings";
+import { clientUnitPrice, getSettings, resolveCommissionRate } from "@/lib/settings";
 import { notify } from "@/lib/notify";
 
 export type PlaceOrderInput = {
@@ -14,10 +9,11 @@ export type PlaceOrderInput = {
   userId: string;
   deliveryDate: Date;
   deliverySlot: string;
+  deliveryMode: DeliveryMode;
   address: string;
   note?: string;
   paymentMethod: PaymentMethod;
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; quantity: number; preparation: Preparation }[];
 };
 
 export type PlaceOrderResult =
@@ -49,6 +45,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     productName: string;
     unit: (typeof products)[number]["unit"];
     quantity: number;
+    preparation: Preparation;
+    preparationFee: number;
     unitPrice: number;
     supplierUnitPrice: number;
     lineTotal: number;
@@ -76,16 +74,20 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       { productId: product.id, supplierId: product.supplierId, clientId: client.id },
       settings.commissionRate
     );
-    const unitPrice = clientUnitPrice(product.price, rate);
+    const preparation = item.preparation === "PLUCKED" ? "PLUCKED" : "STANDARD";
+    const preparationFee = preparation === "PLUCKED" ? settings.pluckingFee : 0;
+    const unitPrice = clientUnitPrice(product.price, rate) + preparationFee;
     subtotal += unitPrice * item.quantity;
-    supplierTotal += product.price * item.quantity;
+    supplierTotal += (product.price + preparationFee) * item.quantity;
     lines.push({
       productId: product.id,
       productName: product.name,
       unit: product.unit,
       quantity: item.quantity,
+      preparation,
+      preparationFee,
       unitPrice,
-      supplierUnitPrice: product.price,
+      supplierUnitPrice: product.price + preparationFee,
       lineTotal: unitPrice * item.quantity,
       supplierId: product.supplierId,
     });
@@ -106,11 +108,27 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     };
   }
 
-  if (!settings.deliverySlots.includes(input.deliverySlot)) {
+  const isGroupage = input.deliveryMode === "GROUPAGE";
+  let deliveryDate = input.deliveryDate;
+  let deliverySlot = input.deliverySlot;
+
+  if (isGroupage) {
+    const now = new Date();
+    const lead = Math.max(1, settings.groupageLeadDays);
+    deliveryDate = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + lead, 8)
+    );
+    deliverySlot = settings.groupageSlot;
+  } else if (!settings.deliverySlots.includes(input.deliverySlot)) {
     return { ok: false, error: "Créneau de livraison invalide." };
   }
 
-  const deliveryFee = deliveryFeeFor(subtotal, settings);
+  const deliveryFee =
+    subtotal >= settings.freeDeliveryThreshold
+      ? 0
+      : isGroupage
+        ? settings.groupageDeliveryFee
+        : settings.deliveryFee;
   const total = subtotal + deliveryFee;
   const commissionAmount = subtotal - supplierTotal;
   const supplierId = supplierIds[0];
@@ -158,8 +176,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           reference,
           clientId: client.id,
           supplierId,
-          deliveryDate: input.deliveryDate,
-          deliverySlot: input.deliverySlot,
+          deliveryDate,
+          deliverySlot,
+          deliveryMode: input.deliveryMode,
           address: input.address,
           note: input.note || null,
           status: "SENT",
@@ -183,6 +202,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
               productName: line.productName,
               unit: line.unit,
               quantity: line.quantity,
+              preparation: line.preparation,
+              preparationFee: line.preparationFee,
               unitPrice: line.unitPrice,
               supplierUnitPrice: line.supplierUnitPrice,
               lineTotal: line.lineTotal,

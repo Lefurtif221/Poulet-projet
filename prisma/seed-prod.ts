@@ -6,6 +6,10 @@ const db = new PrismaClient();
 const DEFAULTS: Record<string, unknown> = {
   commissionRate: 8,
   deliveryFee: 4000,
+  groupageDeliveryFee: 2000,
+  groupageLeadDays: 2,
+  groupageSlot: "07h00 – 08h30",
+  pluckingFee: 0,
   freeDeliveryThreshold: 85000,
   minOrderPro: 20000,
   minOrderParticulier: 10000,

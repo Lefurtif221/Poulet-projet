@@ -69,6 +69,7 @@ export function CartPanel({
                     <p className="truncate text-xs font-semibold">{item.name}</p>
                     <p className="text-[10px] text-on-surface-variant">
                       {item.supplierName} · {formatFCFA(item.price)}/{PRODUCT_UNIT[item.unit]}
+                      {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
                     </p>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <div className="flex items-center rounded border border-outline-variant/60">

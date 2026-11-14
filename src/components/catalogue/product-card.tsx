@@ -70,6 +70,8 @@ export function ProductCard({ product }: { product: CatalogueProduct }) {
         supplierName: product.supplierName,
         imageUrl: product.imageUrl,
         maxStock: product.stock,
+        preparation: "STANDARD",
+        preparationFee: 0,
       },
       quantity
     );
@@ -80,7 +82,9 @@ export function ProductCard({ product }: { product: CatalogueProduct }) {
   return (
     <article className="card card-hover flex flex-col overflow-hidden border-t-[3px] border-t-primary-container">
       <div className="relative">
-        <ProductImage product={product} />
+        <Link href={`/client/produit/${product.id}`}>
+          <ProductImage product={product} />
+        </Link>
         <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1">
           <span className="badge max-w-[58%] truncate bg-white/90 text-on-surface shadow-sm backdrop-blur">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
@@ -96,7 +100,11 @@ export function ProductCard({ product }: { product: CatalogueProduct }) {
         <p className="text-[10px] font-bold uppercase tracking-wide text-secondary">
           {product.supplierLocation}
         </p>
-        <h3 className="mt-0.5 font-display text-base font-semibold leading-tight">{product.name}</h3>
+        <Link href={`/client/produit/${product.id}`}>
+          <h3 className="mt-0.5 font-display text-base font-semibold leading-tight hover:text-primary-container">
+            {product.name}
+          </h3>
+        </Link>
         {product.description ? (
           <p className="mt-1 line-clamp-2 text-xs text-on-surface-variant">{product.description}</p>
         ) : null}
