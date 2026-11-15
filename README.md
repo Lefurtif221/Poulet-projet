@@ -102,6 +102,15 @@ réinitialise depuis Admin → Utilisateurs → PIN.
 3. Ajouter l'option dans `src/components/orders/checkout-form.tsx`.
 4. Gérer la confirmation dans Admin → Paiements (aujourd'hui manuelle).
 
+### Devis de livraison (modèle hybride)
+
+1. Le client commande : la livraison est une **estimation** avec un **plafond garanti**.
+2. Aucun paiement n'est prélevé à ce stade.
+3. L'admin saisit le tarif réel (≤ plafond) dans la fiche commande.
+4. Le client **accepte** le devis (la commande part à l'éleveur et le paiement est demandé) ou
+   **refuse** (annulation sans frais, stocks remis).
+5. Le paiement choisi (Wave, comptant, crédit) est alors appliqué.
+
 ### Paiement Wave / Orange Money manuel
 
 1. L'admin crée un lien de paiement dans Wave Business pour le montant exact de la commande.

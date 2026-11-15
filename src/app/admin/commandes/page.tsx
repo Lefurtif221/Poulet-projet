@@ -17,6 +17,7 @@ function first(value: string | string[] | undefined) {
 
 const TABS = [
   { value: "", label: "Toutes" },
+  { value: "PENDING_QUOTE", label: "Devis livraison" },
   { value: "SENT", label: "Envoyées" },
   { value: "CONFIRMED", label: "Confirmées" },
   { value: "PREPARING", label: "Préparation" },

@@ -11,6 +11,7 @@ import { ensurePayoutForOrder } from "@/lib/payments";
 import { logActivity } from "@/lib/activity";
 import { saveImage } from "@/lib/uploads";
 import { notify } from "@/lib/notify";
+import { getSettings } from "@/lib/settings";
 
 export type OrderActionState = { error?: string; success?: string };
 
@@ -84,7 +85,7 @@ export async function createOrderAction(
     paymentMethod: parsed.data.paymentMethod as PaymentMethod,
     remainderMethod: parsed.data.remainderMethod,
     items: items.data,
-  });
+  }, { quote: true });
 
   if (!result.ok) return { error: result.error };
   redirect(`/client/commande/${result.orderId}?nouvelle=1`);
@@ -138,7 +139,7 @@ export async function cancelOrderAction(formData: FormData): Promise<void> {
       where: { orderId: order.id, status: "PENDING" },
       data: { status: "FAILED" },
     });
-    if (order.paymentMethod === "CREDIT") {
+    if (order.creditAmount > 0) {
       await tx.client.update({
         where: { id: order.clientId },
         data: { balanceDue: { decrement: (order.creditAmount || order.total) } },
@@ -392,3 +393,146 @@ export async function deleteRecurringAction(formData: FormData): Promise<void> {
   redirect("/client/recurrentes");
 }
 
+
+export async function acceptDeliveryQuoteAction(formData: FormData): Promise<void> {
+  const user = await requireUser("CLIENT");
+  const orderId = String(formData.get("orderId") ?? "");
+  const order = await db.order.findFirst({
+    where: { id: orderId, client: { userId: user.sub } },
+    include: { items: true, supplier: { include: { user: true } } },
+  });
+  if (!order || order.status !== "PENDING_QUOTE" || !order.quotedAt) {
+    redirect(`/client/commande/${orderId}?erreur=${encodeURIComponent("Devis indisponible.")}`);
+  }
+
+  const [client, settings] = await Promise.all([
+    db.client.findUnique({ where: { userId: user.sub } }),
+    getSettings(),
+  ]);
+  if (!client) redirect(`/client/commande/${orderId}?erreur=${encodeURIComponent("Compte introuvable.")}`);
+
+  const total = order.subtotal + order.deliveryFee;
+  let creditAmount = 0;
+  let remainderAmount = total;
+  let remainderMethod: "WAVE" | "CASH_ON_DELIVERY" =
+    order.paymentMethod === "WAVE" ? "WAVE" : "CASH_ON_DELIVERY";
+
+  if (order.paymentMethod === "CREDIT") {
+    if (client.creditLimit <= 0) {
+      redirect(`/client/commande/${orderId}?erreur=${encodeURIComponent("Crédit non activé.")}`);
+    }
+    const overdue = await db.order.findFirst({
+      where: {
+        clientId: client.id,
+        status: { notIn: ["CANCELLED", "REFUSED"] },
+        creditDueDate: { lt: new Date() },
+        payments: { some: { method: "CREDIT", status: { in: ["PENDING", "DECLARED"] } } },
+      },
+      select: { id: true },
+    });
+    if (overdue) {
+      redirect(`/client/commande/${orderId}?erreur=${encodeURIComponent("Une facture à crédit est en retard.")}`);
+    }
+    const availableCredit = Math.max(0, client.creditLimit - client.balanceDue);
+    if (availableCredit <= 0) {
+      redirect(`/client/commande/${orderId}?erreur=${encodeURIComponent("Crédit épuisé. Payez comptant ou par Wave.")}`);
+    }
+    creditAmount = Math.min(total, availableCredit);
+    remainderAmount = total - creditAmount;
+    remainderMethod = order.remainderMethod === "WAVE" ? "WAVE" : "CASH_ON_DELIVERY";
+  }
+
+  const paymentRows: {
+    amount: number;
+    method: "CREDIT" | "WAVE" | "CASH_ON_DELIVERY";
+    status: "PENDING";
+    clientId: string;
+  }[] = [];
+  if (creditAmount > 0) {
+    paymentRows.push({ amount: creditAmount, method: "CREDIT", status: "PENDING", clientId: client.id });
+  }
+  if (remainderAmount > 0) {
+    paymentRows.push({
+      amount: remainderAmount,
+      method: remainderMethod,
+      status: "PENDING",
+      clientId: client.id,
+    });
+  }
+
+  const creditDelay = client.creditDelayDays || settings.creditDelayDays;
+
+  await db.$transaction(async (tx) => {
+    await tx.order.update({
+      where: { id: order.id },
+      data: {
+        status: "SENT",
+        creditAmount,
+        remainderAmount,
+        remainderMethod,
+        paymentStatus: "PENDING",
+        creditDueDate:
+          creditAmount > 0 ? new Date(Date.now() + creditDelay * 24 * 60 * 60 * 1000) : null,
+        acceptDeadline: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        payments: { create: paymentRows },
+      },
+    });
+    if (creditAmount > 0) {
+      await tx.client.update({
+        where: { id: client.id },
+        data: { balanceDue: { increment: creditAmount } },
+      });
+    }
+  });
+
+  await logActivity({
+    userId: user.sub,
+    action: "DELIVERY_QUOTE_ACCEPTED",
+    entity: "Order",
+    entityId: order.id,
+    after: { deliveryFee: order.deliveryFee, creditAmount, remainderAmount, remainderMethod },
+  });
+  await notify({
+    userId: order.supplier.userId,
+    orderId: order.id,
+    recipient: order.supplier.user.phone,
+    event: "ORDER_NEW",
+    message: `Nouvelle commande ${order.reference} de ${order.address} — ${total.toLocaleString("fr-FR")} FCFA. Acceptez sous 2 h.`,
+  });
+  revalidatePath(`/client/commande/${order.id}`);
+  revalidatePath(`/admin/commandes/${order.id}`);
+  redirect(`/client/commande/${order.id}?devis=1`);
+}
+
+export async function refuseDeliveryQuoteAction(formData: FormData): Promise<void> {
+  const user = await requireUser("CLIENT");
+  const orderId = String(formData.get("orderId") ?? "");
+  const order = await db.order.findFirst({
+    where: { id: orderId, client: { userId: user.sub } },
+    include: { items: true },
+  });
+  if (!order || order.status !== "PENDING_QUOTE") return;
+
+  await db.$transaction(async (tx) => {
+    for (const item of order.items) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { stock: { increment: item.quantity } },
+      });
+    }
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status: "CANCELLED", cancelReason: "Devis livraison refusé par le client." },
+    });
+  });
+
+  await logActivity({
+    userId: user.sub,
+    action: "DELIVERY_QUOTE_REFUSED",
+    entity: "Order",
+    entityId: order.id,
+  });
+  revalidatePath(`/client/commande/${order.id}`);
+  revalidatePath(`/admin/commandes/${order.id}`);
+  redirect(`/client/commande/${order.id}?devis_refuse=1`);
+}

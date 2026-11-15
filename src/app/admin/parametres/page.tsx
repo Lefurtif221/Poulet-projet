@@ -81,6 +81,19 @@ export default async function AdminSettingsPage() {
                 />
               </div>
               <div>
+                <label className="field-label" htmlFor="deliveryFeeCap">
+                  Plafond livraison garanti (FCFA)
+                </label>
+                <input
+                  id="deliveryFeeCap"
+                  name="deliveryFeeCap"
+                  type="number"
+                  min={0}
+                  defaultValue={settings.deliveryFeeCap}
+                  className="input"
+                />
+              </div>
+              <div>
                 <label className="field-label" htmlFor="groupageDeliveryFee">
                   Livraison groupée (FCFA)
                 </label>

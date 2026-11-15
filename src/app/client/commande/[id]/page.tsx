@@ -9,6 +9,7 @@ import { PAYMENT_METHOD, PRODUCT_UNIT } from "@/lib/labels";
 import {
   Alert,
   ButtonLink,
+  Card,
   Icon,
   PaymentBadge,
   StatusBadge,
@@ -19,7 +20,13 @@ import { OrderTimeline } from "@/components/orders/order-timeline";
 import { DisputeForm } from "@/components/orders/dispute-form";
 import { PaymentProofForm } from "@/components/orders/payment-proof-form";
 import { CopyButton } from "@/components/ui/copy-button";
-import { cancelOrderAction, confirmReceiptAction, reorderAction } from "@/lib/actions/orders";
+import {
+  acceptDeliveryQuoteAction,
+  cancelOrderAction,
+  confirmReceiptAction,
+  refuseDeliveryQuoteAction,
+  reorderAction,
+} from "@/lib/actions/orders";
 import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Suivi de commande" };
@@ -67,12 +74,127 @@ export default async function OrderDetailPage({
         ? "Wave"
         : "Paiement à la livraison";
 
+  if (order.status === "PENDING_QUOTE") {
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        <Link href="/client/commandes" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-container">
+          <Icon name="arrow_back" className="text-lg" />
+          Retour aux commandes
+        </Link>
+
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-display text-2xl font-bold tracking-tight">#{order.reference}</h1>
+            <StatusBadge status={order.status} />
+          </div>
+          <p className="mt-1 text-sm text-on-surface-variant">
+            {order.supplier.farmName} · {formatDateLong(order.deliveryDate)} · {order.deliverySlot}
+          </p>
+          <p className="text-xs text-on-surface-variant">{order.address}</p>
+        </div>
+
+        {alertError ? <Alert tone="danger">{alertError}</Alert> : null}
+
+        <Card className="p-4">
+          <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+            <Icon name="local_shipping" className="text-lg text-primary-container" />
+            Devis de livraison
+          </h2>
+
+          {order.quotedAt ? (
+            <>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                L&apos;équipe a trouvé un tarif de livraison. Vérifiez le montant avant de confirmer.
+              </p>
+              <div className="mt-3 space-y-1.5 rounded-lg bg-surface-container-low p-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Produits</span>
+                  <span>{formatFCFA(order.subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-on-surface-variant">Livraison ({order.deliveryMode === "GROUPAGE" ? "groupée" : "individuelle"})</span>
+                  <span className="font-semibold">{formatFCFA(order.deliveryFee)}</span>
+                </div>
+                <div className="flex justify-between border-t border-outline-variant/30 pt-1.5">
+                  <span className="font-semibold">Total</span>
+                  <span className="money text-lg">{formatFCFA(order.total)}</span>
+                </div>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <form action={acceptDeliveryQuoteAction}>
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <PendingButton className="w-full" pendingLabel="Acceptation…">
+                    <Icon name="check_circle" className="text-lg" />
+                    Accepter le devis
+                  </PendingButton>
+                </form>
+                <form action={refuseDeliveryQuoteAction}>
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <PendingButton variant="outline" className="w-full text-[#a8421a]" pendingLabel="Annulation…">
+                    <Icon name="close" className="text-lg" />
+                    Refuser et annuler
+                  </PendingButton>
+                </form>
+              </div>
+              <p className="mt-2 text-[10px] text-on-surface-variant">
+                Si vous refusez, la commande est annulée sans frais et les stocks sont remis à
+                disposition.
+              </p>
+            </>
+          ) : (
+            <Alert tone="info">
+              Votre demande est envoyée. L&apos;équipe recherche le meilleur tarif de livraison et
+              vous notifie sous peu. Estimation : {formatFCFA(order.estimatedDeliveryFee)} · plafond
+              garanti : {formatFCFA(order.deliveryFeeCap)}. Aucun paiement n&apos;est prélevé pour
+              l&apos;instant.
+            </Alert>
+          )}
+        </Card>
+
+        <Card className="overflow-hidden">
+          <div className="border-b border-outline-variant/30 px-4 py-3">
+            <h2 className="font-display text-base font-semibold">Produits demandés</h2>
+          </div>
+          <div className="divide-y divide-outline-variant/25">
+            {order.items.map((item) => (
+              <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                <span>
+                  {item.quantity} × {item.productName}
+                  {item.preparation === "PLUCKED" ? " · Déplumé" : ""}
+                </span>
+                <span className="money">{formatFCFA(item.lineTotal)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-4 text-xs text-on-surface-variant">
+          <p className="font-semibold text-on-surface">Comment ça marche</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-4">
+            <li>Vous envoyez la demande, sans paiement.</li>
+            <li>L&apos;équipe confirme le tarif de livraison réel.</li>
+            <li>Vous acceptez le devis, puis le paiement est demandé.</li>
+            <li>L&apos;éleveur prépare et livre.</li>
+          </ol>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {query.nouvelle ? (
         <Alert tone="success" title="Commande envoyée à l'éleveur">
           Référence {order.reference}. Vous serez notifié dès qu&apos;elle est confirmée (délai 2 h).
         </Alert>
+      ) : null}
+      {query.devis ? (
+        <Alert tone="success" title="Devis accepté">
+          La commande est transmise à l&apos;éleveur. Le paiement est maintenant disponible.
+        </Alert>
+      ) : null}
+      {query.devis_refuse ? (
+        <Alert tone="warning">Devis refusé. La commande a été annulée sans frais.</Alert>
       ) : null}
       {query.confirmee ? (
         <Alert tone="success" title="Réception confirmée">

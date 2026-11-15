@@ -39,6 +39,7 @@ enum ProductUnit {
 }
 
 enum OrderStatus {
+  PENDING_QUOTE
   SENT
   CONFIRMED
   REFUSED
@@ -239,6 +240,9 @@ model Order {
   commissionRate   Float
   commissionAmount Int
   deliveryFee      Int             @default(0)
+  estimatedDeliveryFee Int         @default(0)
+  deliveryFeeCap   Int             @default(0)
+  quotedAt         DateTime?
   total            Int
   paymentMethod    PaymentMethod
   paymentStatus    PaymentStatus   @default(PENDING)

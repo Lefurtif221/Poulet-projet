@@ -14,6 +14,11 @@ export const ORDER_STATUS: Record<
   OrderStatus,
   { label: string; tone: string; dot: string; step?: number }
 > = {
+  PENDING_QUOTE: {
+    label: "Devis livraison",
+    tone: "bg-slate-100 text-slate-700",
+    dot: "bg-slate-500",
+  },
   SENT: { label: "Envoyée", tone: "bg-blue-50 text-blue-700", dot: "bg-blue-500", step: 1 },
   CONFIRMED: { label: "Confirmée", tone: "bg-teal-50 text-teal-700", dot: "bg-teal-500", step: 2 },
   PREPARING: { label: "En préparation", tone: "bg-amber-50 text-amber-700", dot: "bg-amber-500", step: 3 },

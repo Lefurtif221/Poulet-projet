@@ -78,7 +78,7 @@ export default async function AdminDashboard() {
       take: 5,
     }),
     db.order.findMany({
-      where: { status: { in: ["SENT", "CONFIRMED", "PREPARING", "READY", "IN_DELIVERY", "DELIVERED", "DISPUTED"] } },
+      where: { status: { in: ["PENDING_QUOTE", "SENT", "CONFIRMED", "PREPARING", "READY", "IN_DELIVERY", "DELIVERED", "DISPUTED"] } },
       include: { client: true, supplier: true, delivery: true },
       orderBy: { createdAt: "desc" },
       take: 10,

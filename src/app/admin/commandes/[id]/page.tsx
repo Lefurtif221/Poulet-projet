@@ -18,6 +18,7 @@ import { PendingButton } from "@/components/forms/pending-button";
 import {
   changeOrderStatusAction,
   reassignOrderAction,
+  quoteDeliveryAction,
   recordPaymentAction,
   resolveDisputeAction,
   saveDeliveryAction,
@@ -102,6 +103,50 @@ export default async function AdminOrderDetailPage({ params }: { params: Params 
         <Alert tone="danger" title="Délai de réponse éleveur dépassé">
           Réassignez la commande à un autre éleveur ou confirmez-la manuellement.
         </Alert>
+      ) : null}
+
+      {order.status === "PENDING_QUOTE" ? (
+        <Card className="border-l-[3px] border-l-secondary-container p-4">
+          <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+            <Icon name="local_shipping" className="text-lg text-primary-container" />
+            Devis de livraison
+          </h2>
+          <p className="mt-1 text-xs text-on-surface-variant">
+            Estimation : {formatFCFA(order.estimatedDeliveryFee)} · plafond garanti :{" "}
+            {formatFCFA(order.deliveryFeeCap)} · mode :{" "}
+            {order.deliveryMode === "GROUPAGE" ? "groupé" : "individuel"}.
+          </p>
+          <form action={quoteDeliveryAction} className="mt-3 flex flex-wrap items-end gap-2">
+            <input type="hidden" name="orderId" value={order.id} />
+            <div>
+              <label className="field-label" htmlFor="quoteFee">
+                Frais réels (FCFA)
+              </label>
+              <input
+                id="quoteFee"
+                name="deliveryFee"
+                type="number"
+                min={0}
+                max={order.deliveryFeeCap}
+                defaultValue={order.deliveryFee || order.estimatedDeliveryFee}
+                className="input h-10 w-40 text-xs"
+              />
+            </div>
+            <PendingButton size="sm" pendingLabel="Envoi…">
+              <Icon name="send" className="text-base" />
+              Envoyer le devis au client
+            </PendingButton>
+          </form>
+          {order.quotedAt ? (
+            <Alert tone="info">
+              Devis envoyé le {formatDateTime(order.quotedAt)}. En attente de l&apos;accord du client.
+            </Alert>
+          ) : (
+            <p className="mt-2 text-[11px] text-on-surface-variant">
+              Le client est notifié dès que vous envoyez le devis.
+            </p>
+          )}
+        </Card>
       ) : null}
 
       <Card className="p-4">

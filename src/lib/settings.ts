@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 export type AppSettings = {
   commissionRate: number;
   deliveryFee: number;
+  deliveryFeeCap: number;
   groupageDeliveryFee: number;
   groupageLeadDays: number;
   groupageSlot: string;
@@ -25,6 +26,7 @@ export type AppSettings = {
 export const DEFAULT_SETTINGS: AppSettings = {
   commissionRate: 8,
   deliveryFee: 4000,
+  deliveryFeeCap: 6000,
   groupageDeliveryFee: 2000,
   groupageLeadDays: 2,
   groupageSlot: "07h00 – 08h30",

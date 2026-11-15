@@ -248,7 +248,7 @@ export async function refuseOrderAction(
       where: { orderId: order.id, status: "PENDING" },
       data: { status: "FAILED" },
     });
-    if (order.paymentMethod === "CREDIT") {
+    if (order.creditAmount > 0) {
       await tx.client.update({
         where: { id: order.clientId },
         data: { balanceDue: { decrement: (order.creditAmount || order.total) } },

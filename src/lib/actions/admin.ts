@@ -191,7 +191,7 @@ export async function changeOrderStatusAction(formData: FormData): Promise<void>
         where: { orderId: order.id, status: "PENDING" },
         data: { status: "FAILED" },
       });
-      if (order.paymentMethod === "CREDIT") {
+      if (order.creditAmount > 0) {
         await tx.client.update({
           where: { id: order.clientId },
           data: { balanceDue: { decrement: (order.creditAmount || order.total) } },
@@ -585,6 +585,7 @@ export async function updateAdminProductAction(formData: FormData): Promise<void
 const NUMBER_SETTINGS = [
   "commissionRate",
   "deliveryFee",
+  "deliveryFeeCap",
   "groupageDeliveryFee",
   "groupageLeadDays",
   "pluckingFee",
@@ -806,4 +807,43 @@ export async function createCashClosingAction(
   revalidatePath("/admin/caisse");
   revalidatePath("/admin");
   return { success: "Clôture de caisse enregistrée." };
+}
+
+export async function quoteDeliveryAction(formData: FormData): Promise<void> {
+  const admin = await adminUser();
+  const orderId = String(formData.get("orderId") ?? "");
+  const fee = Math.round(Number(formData.get("deliveryFee") ?? 0));
+  const order = await db.order.findUnique({
+    where: { id: orderId },
+    include: { client: { include: { user: true } } },
+  });
+  if (!order || order.status !== "PENDING_QUOTE") return;
+  if (!Number.isFinite(fee) || fee < 0 || fee > order.deliveryFeeCap) return;
+
+  await db.order.update({
+    where: { id: order.id },
+    data: {
+      deliveryFee: fee,
+      total: order.subtotal + fee,
+      quotedAt: new Date(),
+      acceptDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+  });
+  await notify({
+    userId: order.client.userId,
+    orderId: order.id,
+    recipient: order.client.user.phone,
+    event: "DELIVERY_QUOTE_READY",
+    message: `Devis livraison pour ${order.reference} : ${fee.toLocaleString("fr-FR")} FCFA. Total ${(order.subtotal + fee).toLocaleString("fr-FR")} FCFA. Acceptez ou refusez dans votre espace.`,
+  });
+  await logActivity({
+    userId: admin.sub,
+    action: "DELIVERY_QUOTE_SENT",
+    entity: "Order",
+    entityId: order.id,
+    after: { deliveryFee: fee, total: order.subtotal + fee },
+  });
+  revalidatePath(`/admin/commandes/${order.id}`);
+  revalidatePath(`/client/commande/${order.id}`);
+  revalidatePath("/admin/commandes");
 }

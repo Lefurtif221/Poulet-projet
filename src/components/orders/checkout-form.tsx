@@ -58,6 +58,7 @@ export function CheckoutForm({
   creditDelayDays,
   minOrder,
   deliveryFee,
+  deliveryFeeCap,
   groupageFee,
   groupageLeadDays,
   groupageSlot,
@@ -70,6 +71,7 @@ export function CheckoutForm({
   creditDelayDays: number;
   minOrder: number;
   deliveryFee: number;
+  deliveryFeeCap: number;
   groupageFee: number;
   groupageLeadDays: number;
   groupageSlot: string;
@@ -166,6 +168,11 @@ export function CheckoutForm({
             <Icon name="local_shipping" className="text-xl text-primary-container" />
             Livraison professionnelle
           </h2>
+          <p className="mt-1 text-xs text-on-surface-variant">
+            Les frais affichés sont une estimation. Le tarif réel sera confirmé par l&apos;équipe
+            avant préparation ; vous pourrez l&apos;accepter ou annuler sans frais. Plafond garanti :{" "}
+            {formatFCFA(deliveryFeeCap)}.
+          </p>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <label
@@ -341,12 +348,17 @@ export function CheckoutForm({
             })}
           </div>
 
+          <p className="mt-3 text-[10px] text-on-surface-variant">
+            Le paiement (Wave, comptant ou crédit) sera demandé après acceptation du devis de
+            livraison.
+          </p>
+
           {method === "CREDIT" ? (
             <div className="space-y-2">
               <Alert tone="info">
-                Crédit utilisé : {formatFCFA(creditUsed)} (échéance {creditDelayDays} jours).
-                Complément : {formatFCFA(remainderDue)}. Le crédit est ajouté à votre encours et
-                doit être réglé avant vos prochaines commandes à crédit.
+                Crédit estimé : {formatFCFA(creditUsed)} (échéance {creditDelayDays} jours).
+                Complément estimé : {formatFCFA(remainderDue)}. Le crédit sera débité après
+                acceptation du devis et devra être réglé avant vos prochaines commandes à crédit.
               </Alert>
 
               {remainderDue > 0 ? (
@@ -449,7 +461,7 @@ export function CheckoutForm({
               </span>
             </div>
             <div className="flex items-center justify-between border-t border-outline-variant/30 pt-2">
-              <span className="font-semibold">Total à régler</span>
+              <span className="font-semibold">Total estimé</span>
               <span className="money text-xl">{formatFCFA(total)}</span>
             </div>
 
@@ -474,10 +486,11 @@ export function CheckoutForm({
 
             <SubmitButton className="w-full" pendingLabel="Envoi de la commande…">
               <Icon name="send" className="text-lg" />
-              Confirmer la commande
+              Envoyer la demande
             </SubmitButton>
             <p className="text-center text-[10px] text-on-surface-variant">
-              L&apos;éleveur a 2 heures pour accepter. Vous pouvez annuler sans frais avant sa confirmation.
+              Aucun paiement n&apos;est prélevé maintenant. Après le devis de livraison, vous acceptez
+              ou annulez sans frais avant préparation.
             </p>
           </div>
         </div>

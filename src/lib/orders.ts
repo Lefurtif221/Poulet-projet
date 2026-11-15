@@ -21,7 +21,10 @@ export type PlaceOrderResult =
   | { ok: true; orderId: string; reference: string }
   | { ok: false; error: string };
 
-export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+export async function placeOrder(
+  input: PlaceOrderInput,
+  options?: { quote?: boolean }
+): Promise<PlaceOrderResult> {
   if (input.items.length === 0) return { ok: false, error: "Votre panier est vide." };
 
   const [client, settings, rules] = await Promise.all([
@@ -133,6 +136,126 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   const total = subtotal + deliveryFee;
   const commissionAmount = subtotal - supplierTotal;
   const supplierId = supplierIds[0];
+
+  if (options?.quote) {
+    if (input.paymentMethod === "CREDIT") {
+      if (client.creditLimit <= 0) {
+        return { ok: false, error: "Le paiement à crédit n'est pas activé sur votre compte." };
+      }
+      const overdue = await db.order.findFirst({
+        where: {
+          clientId: client.id,
+          status: { notIn: ["CANCELLED", "REFUSED"] },
+          creditDueDate: { lt: new Date() },
+          payments: { some: { method: "CREDIT", status: { in: ["PENDING", "DECLARED"] } } },
+        },
+        select: { id: true },
+      });
+      if (overdue) {
+        return { ok: false, error: "Une facture à crédit est en retard. Réglez-la ou payez comptant." };
+      }
+      if (Math.max(0, client.creditLimit - client.balanceDue) <= 0) {
+        return { ok: false, error: "Crédit épuisé. Réglez votre encours ou payez comptant." };
+      }
+    } else if (input.paymentMethod !== "WAVE" && input.paymentMethod !== "CASH_ON_DELIVERY") {
+      return { ok: false, error: "Mode de paiement indisponible." };
+    }
+
+    const reference = await generateOrderReference();
+    const estimatedDeliveryFee = deliveryFee;
+    const deliveryFeeCap =
+      estimatedDeliveryFee > 0
+        ? Math.max(estimatedDeliveryFee, settings.deliveryFeeCap)
+        : 0;
+    const remainderMethod =
+      input.paymentMethod === "WAVE"
+        ? "WAVE"
+        : input.paymentMethod === "CASH_ON_DELIVERY"
+          ? "CASH_ON_DELIVERY"
+          : (input.remainderMethod ?? "CASH_ON_DELIVERY");
+
+    try {
+      const order = await db.$transaction(async (tx) => {
+        for (const item of input.items) {
+          const updated = await tx.product.updateMany({
+            where: { id: item.productId, stock: { gte: item.quantity }, active: true, available: true },
+            data: { stock: { decrement: item.quantity } },
+          });
+          if (updated.count === 0) throw new Error("STOCK_CONFLICT");
+        }
+
+        return tx.order.create({
+          data: {
+            reference,
+            clientId: client.id,
+            supplierId,
+            deliveryDate,
+            deliverySlot,
+            deliveryMode: input.deliveryMode,
+            address: input.address,
+            note: input.note || null,
+            status: "PENDING_QUOTE",
+            subtotal,
+            supplierTotal,
+            commissionRate:
+              subtotal > 0 ? (commissionAmount / subtotal) * 100 : settings.commissionRate,
+            commissionAmount,
+            deliveryFee: 0,
+            estimatedDeliveryFee,
+            deliveryFeeCap,
+            total: subtotal,
+            paymentMethod: input.paymentMethod,
+            paymentStatus: "PENDING",
+            creditAmount: 0,
+            remainderAmount: 0,
+            remainderMethod,
+            acceptDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            items: {
+              create: lines.map((line) => ({
+                productId: line.productId,
+                productName: line.productName,
+                unit: line.unit,
+                quantity: line.quantity,
+                preparation: line.preparation,
+                preparationFee: line.preparationFee,
+                unitPrice: line.unitPrice,
+                supplierUnitPrice: line.supplierUnitPrice,
+                lineTotal: line.lineTotal,
+              })),
+            },
+            delivery: { create: { status: "PENDING" } },
+          },
+        });
+      });
+
+      const adminUser = await db.user.findFirst({
+        where: { role: "ADMIN", status: "ACTIVE" },
+        select: { id: true, phone: true },
+      });
+      if (adminUser) {
+        await notify({
+          userId: adminUser.id,
+          orderId: order.id,
+          recipient: adminUser.phone,
+          event: "DELIVERY_QUOTE_NEEDED",
+          message: `Devis livraison à établir pour ${order.reference} : estimation ${estimatedDeliveryFee.toLocaleString("fr-FR")} FCFA, plafond ${deliveryFeeCap.toLocaleString("fr-FR")} FCFA.`,
+        });
+      }
+      await logActivity({
+        userId: input.userId,
+        action: "ORDER_PENDING_QUOTE",
+        entity: "Order",
+        entityId: order.id,
+        after: { reference, estimatedDeliveryFee, deliveryFeeCap },
+      });
+      return { ok: true, orderId: order.id, reference: order.reference };
+    } catch (error) {
+      if (error instanceof Error && error.message === "STOCK_CONFLICT") {
+        return { ok: false, error: "Un produit a été épuisé entre-temps. Actualisez votre panier." };
+      }
+      return { ok: false, error: "Impossible de créer la commande. Réessayez." };
+    }
+  }
 
   let creditAmount = 0;
   let remainderAmount = total;
