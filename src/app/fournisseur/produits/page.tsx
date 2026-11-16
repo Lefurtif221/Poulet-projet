@@ -5,13 +5,19 @@ import { getSettings } from "@/lib/settings";
 import { clientUnitPrice } from "@/lib/settings";
 import { formatFCFA } from "@/lib/format";
 import { PRODUCT_CATEGORY, PRODUCT_UNIT } from "@/lib/labels";
-import { ButtonLink, EmptyState, Icon, buttonClass } from "@/components/ui";
+import { Alert, ButtonLink, EmptyState, Icon, buttonClass } from "@/components/ui";
 import { toggleProductAction } from "@/lib/actions/supplier";
+import { DeleteProductButton } from "@/components/supplier/delete-product-button";
 
 export const metadata: Metadata = { title: "Mes produits" };
 
-export default async function SupplierProductsPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function SupplierProductsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireUser("FOURNISSEUR");
+  const query = await searchParams;
+  const deleted = Array.isArray(query.deleted) ? query.deleted[0] : query.deleted;
+  const archived = Array.isArray(query.archive) ? query.archive[0] : query.archive;
   const supplier = await db.supplier.findUnique({ where: { userId: user.sub } });
   if (!supplier) return null;
   const [products, settings] = await Promise.all([
@@ -35,6 +41,15 @@ export default async function SupplierProductsPage() {
           Nouveau produit
         </ButtonLink>
       </div>
+
+      {deleted ? (
+        <Alert tone="success">Produit supprimé définitivement.</Alert>
+      ) : null}
+      {archived ? (
+        <Alert tone="warning">
+          Ce produit a déjà été utilisé dans des commandes : il a été archivé et masqué du catalogue.
+        </Alert>
+      ) : null}
 
       {products.length === 0 ? (
         <EmptyState
@@ -110,6 +125,7 @@ export default async function SupplierProductsPage() {
                           {product.active ? "Masquer" : "Afficher"}
                         </button>
                       </form>
+                      <DeleteProductButton productId={product.id} name={product.name} />
                     </div>
                   </td>
                 </tr>

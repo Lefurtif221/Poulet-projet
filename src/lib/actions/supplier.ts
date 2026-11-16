@@ -412,3 +412,40 @@ export async function requestPayoutAction(): Promise<void> {
   });
   revalidatePath("/fournisseur/paiements");
 }
+
+export async function deleteProductAction(formData: FormData): Promise<void> {
+  const { user, supplier } = await currentSupplier();
+  if (!supplier) return;
+  const productId = String(formData.get("productId") ?? "");
+  const product = await db.product.findFirst({ where: { id: productId, supplierId: supplier.id } });
+  if (!product) return;
+
+  const [orders, recurring, rules] = await Promise.all([
+    db.orderItem.count({ where: { productId } }),
+    db.recurringOrderItem.count({ where: { productId } }),
+    db.commissionRule.count({ where: { productId } }),
+  ]);
+
+  if (orders > 0 || recurring > 0 || rules > 0) {
+    await db.product.update({ where: { id: productId }, data: { active: false, available: false } });
+    await logActivity({
+      userId: user.sub,
+      action: "PRODUCT_ARCHIVED",
+      entity: "Product",
+      entityId: productId,
+      before: { name: product.name, active: product.active },
+      after: { active: false, reason: "Produit utilisé dans des commandes" },
+    });
+    redirect("/fournisseur/produits?archive=1");
+  }
+
+  await db.product.delete({ where: { id: productId } });
+  await logActivity({
+    userId: user.sub,
+    action: "PRODUCT_DELETED",
+    entity: "Product",
+    entityId: productId,
+    before: { name: product.name, price: product.price },
+  });
+  redirect("/fournisseur/produits?deleted=1");
+}
