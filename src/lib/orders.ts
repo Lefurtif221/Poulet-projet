@@ -1,7 +1,7 @@
 import type { DeliveryMode, PaymentMethod, Preparation } from "@prisma/client";
 import { db } from "@/lib/db";
 import { logActivity, generateOrderReference } from "@/lib/activity";
-import { clientUnitPrice, getSettings, resolveCommissionRate } from "@/lib/settings";
+import { clientUnitPrice, getSettings, hasCompletedOrder, resolveCommissionRate } from "@/lib/settings";
 import { notify } from "@/lib/notify";
 
 export type PlaceOrderInput = {
@@ -139,6 +139,12 @@ export async function placeOrder(
 
   if (options?.quote) {
     if (input.paymentMethod === "CREDIT") {
+      if (!(await hasCompletedOrder(client.id))) {
+        return {
+          ok: false,
+          error: "Le crédit se débloque après votre première commande livrée. Payez comptant ou par Wave.",
+        };
+      }
       if (client.creditLimit <= 0) {
         return { ok: false, error: "Le paiement à crédit n'est pas activé sur votre compte." };
       }
@@ -262,6 +268,12 @@ export async function placeOrder(
   let remainderMethod: "WAVE" | "CASH_ON_DELIVERY" | null = null;
 
   if (input.paymentMethod === "CREDIT") {
+    if (!(await hasCompletedOrder(client.id))) {
+      return {
+        ok: false,
+        error: "Le crédit se débloque après votre première commande livrée. Payez comptant ou par Wave.",
+      };
+    }
     if (client.creditLimit <= 0) {
       return { ok: false, error: "Le paiement à crédit n'est pas activé sur votre compte." };
     }

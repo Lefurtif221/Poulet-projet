@@ -15,6 +15,9 @@ export default async function CartPage() {
     getSettings(),
   ]);
   if (!client) redirect("/connexion");
+  const completedOrders = await db.order.count({
+    where: { clientId: client.id, status: { in: ["DELIVERED", "CLOSED"] } },
+  });
 
   return (
     <div className="space-y-4">
@@ -34,6 +37,7 @@ export default async function CartPage() {
       <CheckoutForm
         address={`${client.address}${client.district ? `, ${client.district}` : ""}`}
         creditLimit={client.creditLimit}
+        creditEligible={completedOrders > 0}
         balanceDue={client.balanceDue}
         creditDelayDays={client.creditDelayDays || settings.creditDelayDays}
         minOrder={settings.minOrderPro}

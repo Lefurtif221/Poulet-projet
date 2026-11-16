@@ -160,3 +160,10 @@ export function isCreditBlocked(client: {
 export function availableCredit(client: { creditLimit: number; balanceDue: number }): number {
   return Math.max(0, client.creditLimit - client.balanceDue);
 }
+
+export async function hasCompletedOrder(clientId: string): Promise<boolean> {
+  const count = await db.order.count({
+    where: { clientId, status: { in: ["DELIVERED", "CLOSED"] } },
+  });
+  return count > 0;
+}

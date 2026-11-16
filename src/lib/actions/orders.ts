@@ -11,7 +11,7 @@ import { ensurePayoutForOrder } from "@/lib/payments";
 import { logActivity } from "@/lib/activity";
 import { saveImage } from "@/lib/uploads";
 import { notify } from "@/lib/notify";
-import { getSettings } from "@/lib/settings";
+import { getSettings, hasCompletedOrder } from "@/lib/settings";
 
 export type OrderActionState = { error?: string; success?: string };
 
@@ -426,6 +426,11 @@ export async function acceptDeliveryQuoteAction(formData: FormData): Promise<voi
     order.paymentMethod === "WAVE" ? "WAVE" : "CASH_ON_DELIVERY";
 
   if (order.paymentMethod === "CREDIT") {
+    if (!(await hasCompletedOrder(client.id))) {
+      redirect(
+        `/client/commande/${orderId}?erreur=${encodeURIComponent("Le crédit se débloque après votre première commande livrée.")}`
+      );
+    }
     if (client.creditLimit <= 0) {
       redirect(`/client/commande/${orderId}?erreur=${encodeURIComponent("Crédit non activé.")}`);
     }

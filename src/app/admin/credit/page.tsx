@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatDate, formatFCFA } from "@/lib/format";
@@ -8,7 +9,12 @@ import { PendingButton } from "@/components/forms/pending-button";
 
 export const metadata: Metadata = { title: "Crédit & risque" };
 
-export default async function AdminCreditPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function AdminCreditPage({ searchParams }: { searchParams: SearchParams }) {
+  const query = await searchParams;
+  const scope = (Array.isArray(query.scope) ? query.scope[0] : query.scope) === "all" ? "all" : "history";
+  const error = Array.isArray(query.erreur) ? query.erreur[0] : query.erreur;
   const settings = await getSettings();
   const clients = await db.client.findMany({
     include: {
@@ -19,10 +25,14 @@ export default async function AdminCreditPage() {
         orderBy: { creditDueDate: "asc" },
         take: 10,
       },
+      _count: {
+        select: { orders: { where: { status: { in: ["DELIVERED", "CLOSED"] } } } },
+      },
     },
     orderBy: { balanceDue: "desc" },
   });
 
+  const visibleClients = scope === "all" ? clients : clients.filter((client) => client._count.orders > 0);
   const totalOutstanding = clients.reduce((total, client) => total + client.balanceDue, 0);
   const hasPendingCredit = (order: (typeof clients)[number]["orders"][number]) =>
     order.payments.some(
@@ -42,6 +52,41 @@ export default async function AdminCreditPage() {
           Plafonds, délais et blocage automatique. Le crédit est accordé manuellement, jamais par défaut.
         </p>
       </div>
+
+      {error ? <Alert tone="danger">{error}</Alert> : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/admin/credit"
+          className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+            scope === "history"
+              ? "border-primary-container bg-primary-container text-white"
+              : "border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant"
+          }`}
+        >
+          Clients avec historique
+        </Link>
+        <Link
+          href="/admin/credit?scope=all"
+          className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+            scope === "all"
+              ? "border-primary-container bg-primary-container text-white"
+              : "border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant"
+          }`}
+        >
+          Tous les clients
+        </Link>
+      </div>
+
+      {visibleClients.length === 0 ? (
+        <Card className="p-5 text-sm text-on-surface-variant">
+          Aucun client n&apos;a encore de commande livrée. Utilise{" "}
+          <Link href="/admin/credit?scope=all" className="link">
+            Tous les clients
+          </Link>{" "}
+          pour accorder un crédit à un nouveau client vérifié.
+        </Card>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Card className="p-4">
@@ -73,7 +118,7 @@ export default async function AdminCreditPage() {
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-2">
-        {clients.map((client) => {
+        {visibleClients.map((client) => {
           const phoneDigits = client.user.phone.replace(/\D/g, "");
           const overdue = client.orders.filter(
             (order) => hasPendingCredit(order) && order.creditDueDate && order.creditDueDate < new Date()
@@ -89,6 +134,9 @@ export default async function AdminCreditPage() {
                     {client.activityType ?? "Activité non précisée"} · {client.district ?? "Zone non précisée"}
                   </p>
                   <p className="text-[11px] text-on-surface-variant">{client.user.phone}</p>
+                  <p className="mt-1 text-[10px] font-semibold text-on-surface-variant">
+                    {client._count.orders} commande(s) livrée(s)/clôturée(s)
+                  </p>
                 </div>
                 <span
                   className={`badge ${
@@ -160,39 +208,45 @@ export default async function AdminCreditPage() {
                 </div>
               ) : null}
 
-              <form action={updateCreditAction} className="mt-3 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-                <input type="hidden" name="clientId" value={client.id} />
-                <div>
-                  <label className="field-label" htmlFor={`limit-${client.id}`}>
-                    Plafond
-                  </label>
-                  <input
-                    id={`limit-${client.id}`}
-                    name="creditLimit"
-                    type="number"
-                    min={0}
-                    defaultValue={client.creditLimit}
-                    className="input h-9 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="field-label" htmlFor={`delay-${client.id}`}>
-                    Délai (j)
-                  </label>
-                  <input
-                    id={`delay-${client.id}`}
-                    name="creditDelayDays"
-                    type="number"
-                    min={0}
-                    defaultValue={client.creditDelayDays || settings.creditDelayDays}
-                    className="input h-9 text-xs"
-                  />
-                </div>
-                <PendingButton size="sm" pendingLabel="…">
-                  <Icon name="save" className="text-base" />
-                  OK
-                </PendingButton>
-              </form>
+              {client._count.orders > 0 ? (
+                <form action={updateCreditAction} className="mt-3 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                  <input type="hidden" name="clientId" value={client.id} />
+                  <div>
+                    <label className="field-label" htmlFor={`limit-${client.id}`}>
+                      Plafond
+                    </label>
+                    <input
+                      id={`limit-${client.id}`}
+                      name="creditLimit"
+                      type="number"
+                      min={0}
+                      defaultValue={client.creditLimit}
+                      className="input h-9 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label" htmlFor={`delay-${client.id}`}>
+                      Délai (j)
+                    </label>
+                    <input
+                      id={`delay-${client.id}`}
+                      name="creditDelayDays"
+                      type="number"
+                      min={0}
+                      defaultValue={client.creditDelayDays || settings.creditDelayDays}
+                      className="input h-9 text-xs"
+                    />
+                  </div>
+                  <PendingButton size="sm" pendingLabel="…">
+                    <Icon name="save" className="text-base" />
+                    OK
+                  </PendingButton>
+                </form>
+              ) : (
+                <Alert tone="info">
+                  Le crédit se débloque après la première commande livrée ou clôturée.
+                </Alert>
+              )}
               {overdue.length > 0 ? (
                 <p className="mt-1 text-[10px] font-semibold text-red-700">
                   {overdue.length} facture(s) échue(s) :{" "}

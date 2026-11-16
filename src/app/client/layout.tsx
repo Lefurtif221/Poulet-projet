@@ -10,16 +10,21 @@ export default async function ClientLayout({ children }: { children: React.React
   const client = await db.client.findUnique({ where: { userId: user.sub } });
   if (!client) redirect("/connexion");
 
-  const partnerCount = await db.supplier.count({
-    where: { user: { status: "ACTIVE" }, isOpen: true },
-  });
+  const [partnerCount, completedOrders] = await Promise.all([
+    db.supplier.count({
+      where: { user: { status: "ACTIVE" }, isOpen: true },
+    }),
+    db.order.count({
+      where: { clientId: client.id, status: { in: ["DELIVERED", "CLOSED"] } },
+    }),
+  ]);
 
   return (
     <div className="min-h-screen bg-surface">
       <ClientHeader
         name={client.establishment}
         establishment={client.establishment}
-        creditLimit={client.creditLimit}
+        creditLimit={completedOrders > 0 ? client.creditLimit : 0}
         balanceDue={client.balanceDue}
         partnerCount={partnerCount}
       />

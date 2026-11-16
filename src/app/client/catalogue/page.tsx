@@ -81,7 +81,15 @@ export default async function CataloguePage({ searchParams }: { searchParams: Se
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const creditAvailable = Math.max(0, (client?.creditLimit ?? 0) - (client?.balanceDue ?? 0));
+  const completedOrders = client
+    ? await db.order.count({
+        where: { clientId: client.id, status: { in: ["DELIVERED", "CLOSED"] } },
+      })
+    : 0;
+  const creditAvailable =
+    completedOrders > 0
+      ? Math.max(0, (client?.creditLimit ?? 0) - (client?.balanceDue ?? 0))
+      : 0;
 
   function categoryHref(value: string): string {
     const next = new URLSearchParams();

@@ -54,6 +54,7 @@ const PAYMENTS: { value: PaymentMethod; label: string; hint: string; icon: strin
 export function CheckoutForm({
   address,
   creditLimit,
+  creditEligible,
   balanceDue,
   creditDelayDays,
   minOrder,
@@ -67,6 +68,7 @@ export function CheckoutForm({
 }: {
   address: string;
   creditLimit: number;
+  creditEligible: boolean;
   balanceDue: number;
   creditDelayDays: number;
   minOrder: number;
@@ -112,7 +114,7 @@ export function CheckoutForm({
   const total = subtotal + fee;
   const missing = Math.max(0, minOrder - subtotal);
   const creditAvailable = Math.max(0, creditLimit - balanceDue);
-  const creditAllowed = creditLimit > 0 && creditAvailable > 0;
+  const creditAllowed = creditEligible && creditLimit > 0 && creditAvailable > 0;
   const creditUsed = method === "CREDIT" ? Math.min(total, creditAvailable) : 0;
   const remainderDue = total - creditUsed;
   const groupageDate = new Date(
@@ -337,9 +339,11 @@ export function CheckoutForm({
                     <span className="block text-sm font-semibold">{option.label}</span>
                     <span className="block text-[11px] text-on-surface-variant">
                       {option.value === "CREDIT"
-                        ? creditLimit > 0
-                          ? `Disponible : ${formatFCFA(creditAvailable)} · utilisé : ${formatFCFA(creditUsed)} · complément : ${formatFCFA(remainderDue)}`
-                          : "Non activé sur votre compte"
+                        ? !creditEligible
+                          ? "Débloqué après votre première commande livrée"
+                          : creditLimit > 0
+                            ? `Disponible : ${formatFCFA(creditAvailable)} · utilisé : ${formatFCFA(creditUsed)} · complément : ${formatFCFA(remainderDue)}`
+                            : "Non activé sur votre compte"
                         : option.hint}
                     </span>
                   </span>

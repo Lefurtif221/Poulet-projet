@@ -26,6 +26,11 @@ export default async function CreditPage() {
   ]);
   if (!client) return null;
 
+  const completedOrders = await db.order.count({
+    where: { clientId: client.id, status: { in: ["DELIVERED", "CLOSED"] } },
+  });
+  const creditEligible = completedOrders > 0;
+
   const [creditOrders, payments] = await Promise.all([
     db.order.findMany({
       where: {
@@ -56,9 +61,10 @@ export default async function CreditPage() {
     .map((order) => order.creditDueDate)
     .filter((date): date is Date => Boolean(date))
     .sort((a, b) => a.getTime() - b.getTime())[0];
-  const available = Math.max(0, client.creditLimit - client.balanceDue);
-  const usage = client.creditLimit > 0 ? (client.balanceDue / client.creditLimit) * 100 : 0;
-  const creditActive = client.creditLimit > 0;
+  const effectiveLimit = creditEligible ? client.creditLimit : 0;
+  const available = Math.max(0, effectiveLimit - client.balanceDue);
+  const usage = effectiveLimit > 0 ? (client.balanceDue / effectiveLimit) * 100 : 0;
+  const creditActive = creditEligible && client.creditLimit > 0;
 
   return (
     <div className="space-y-5">
@@ -69,11 +75,15 @@ export default async function CreditPage() {
         </p>
       </div>
 
-      {!creditActive ? (
+      {!creditEligible ? (
+        <Alert tone="info" title="Crédit après la première commande">
+          Le crédit se débloque après votre première commande livrée ou clôturée. En attendant, vous
+          pouvez commander et payer par Wave ou à la livraison.
+        </Alert>
+      ) : !creditActive ? (
         <Alert tone="info" title="Crédit non activé">
           Le crédit est accordé manuellement après vérification de votre activité. Vous pouvez commander
-          comptant (Wave ou à la livraison). Demandez l&apos;activation au{" "}
-          {settings.supportPhone}.
+          comptant (Wave ou à la livraison). Demandez l&apos;activation au {settings.supportPhone}.
         </Alert>
       ) : null}
 
@@ -85,7 +95,7 @@ export default async function CreditPage() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Plafond autorisé" value={formatFCFA(client.creditLimit)} icon="account_balance_wallet" />
+        <StatCard label="Plafond autorisé" value={formatFCFA(effectiveLimit)} icon="account_balance_wallet" />
         <StatCard label="Encours dû" value={formatFCFA(client.balanceDue)} icon="receipt_long" tone="warning" />
         <StatCard
           label="Crédit disponible"
@@ -112,13 +122,13 @@ export default async function CreditPage() {
         <div className="mt-2">
           <ProgressBar
             value={client.balanceDue}
-            max={client.creditLimit || 1}
+            max={effectiveLimit || 1}
             tone={overdue.length > 0 ? "danger" : usage > 80 ? "warning" : "primary"}
           />
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-on-surface-variant">
           <span>Encours : {formatFCFA(client.balanceDue)}</span>
-          <span>Plafond : {formatFCFA(client.creditLimit)}</span>
+          <span>Plafond : {formatFCFA(effectiveLimit)}</span>
         </div>
       </section>
 

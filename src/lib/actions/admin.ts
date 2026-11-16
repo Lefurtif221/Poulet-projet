@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { formatFCFA, normalizePhone } from "@/lib/format";
 import { logActivity } from "@/lib/activity";
 import { ensurePayoutForOrder } from "@/lib/payments";
-import { setSetting, type AppSettings } from "@/lib/settings";
+import { hasCompletedOrder, setSetting, type AppSettings } from "@/lib/settings";
 import { notify } from "@/lib/notify";
 
 async function adminUser() {
@@ -502,6 +502,12 @@ export async function updateCreditAction(formData: FormData): Promise<void> {
   const creditDelayDays = Math.max(0, Number(formData.get("creditDelayDays") ?? 0) || 0);
   const client = await db.client.findUnique({ where: { id: clientId } });
   if (!client) return;
+  if (creditLimit > 0 && !(await hasCompletedOrder(clientId))) {
+    redirect(
+      "/admin/credit?scope=all&erreur=" +
+        encodeURIComponent("Le crédit se débloque après la première commande livrée.")
+    );
+  }
   await db.client.update({ where: { id: clientId }, data: { creditLimit, creditDelayDays } });
   await logActivity({
     userId: admin.sub,
