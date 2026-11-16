@@ -35,7 +35,7 @@ export default async function SupplierDashboard() {
   const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-  const [todayOrders, pending, inProgress, recent, products, payouts, monthOrders, recentHistory] =
+  const [todayOrders, pending, inProgress, recent, products, payouts, monthOrders, recentHistory, cancelledOrders] =
     await Promise.all([
       db.order.count({
         where: { supplierId: supplier.id, deliveryDate: { gte: startOfDay, lt: endOfDay }, status: { notIn: ["CANCELLED", "REFUSED"] } },
@@ -78,6 +78,12 @@ export default async function SupplierDashboard() {
       db.order.findMany({
         where: { supplierId: supplier.id, createdAt: { gte: new Date(Date.now() - 60 * 86400000) } },
         select: { status: true },
+      }),
+      db.order.findMany({
+        where: { supplierId: supplier.id, status: "CANCELLED" },
+        include: { items: true, client: true },
+        orderBy: { updatedAt: "desc" },
+        take: 8,
       }),
     ]);
 
@@ -307,6 +313,41 @@ export default async function SupplierDashboard() {
               </div>
             )}
           </section>
+
+          {cancelledOrders.length > 0 ? (
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">
+                <Icon name="cancel" className="text-xl text-[#a8421a]" />
+                Commandes annulées
+              </h2>
+              <Card className="border-l-[3px] border-l-[#a8421a]">
+                <div className="border-b border-outline-variant/30 p-3">
+                  <Alert tone="warning">
+                    Ne préparez pas et ne livrez pas ces commandes. Elles ont été annulées.
+                  </Alert>
+                </div>
+                <ul className="divide-y divide-outline-variant/25">
+                  {cancelledOrders.map((order) => (
+                    <li key={order.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">#{order.reference}</p>
+                          <StatusBadge status={order.status} />
+                        </div>
+                        <p className="text-[11px] text-on-surface-variant">
+                          {order.client.establishment} · livraison prévue {formatDate(order.deliveryDate)}
+                        </p>
+                        <p className="text-[11px] text-on-surface-variant">
+                          {order.cancelReason ?? "Annulée"}
+                        </p>
+                      </div>
+                      <span className="money text-xs">{formatFCFA(order.supplierTotal)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </section>
+          ) : null}
 
           <section>
             <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold">

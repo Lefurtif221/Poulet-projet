@@ -228,6 +228,7 @@ export async function changeOrderStatusAction(formData: FormData): Promise<void>
   revalidatePath("/admin/commandes");
   revalidatePath(`/admin/commandes/${order.id}`);
   revalidatePath("/admin");
+  revalidatePath("/fournisseur");
 }
 
 export async function reassignOrderAction(formData: FormData): Promise<void> {

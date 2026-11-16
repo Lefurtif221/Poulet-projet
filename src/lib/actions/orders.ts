@@ -120,7 +120,7 @@ export async function cancelOrderAction(formData: FormData): Promise<void> {
   const orderId = String(formData.get("orderId") ?? "");
   const order = await db.order.findFirst({
     where: { id: orderId, client: { userId: user.sub } },
-    include: { items: true },
+    include: { items: true, supplier: { include: { user: true } } },
   });
   if (!order || order.status !== "SENT") return;
 
@@ -142,7 +142,7 @@ export async function cancelOrderAction(formData: FormData): Promise<void> {
     if (order.creditAmount > 0) {
       await tx.client.update({
         where: { id: order.clientId },
-        data: { balanceDue: { decrement: (order.creditAmount || order.total) } },
+        data: { balanceDue: { decrement: order.creditAmount } },
       });
     }
   });
@@ -153,6 +153,14 @@ export async function cancelOrderAction(formData: FormData): Promise<void> {
     entity: "Order",
     entityId: order.id,
   });
+  await notify({
+    userId: order.supplier.userId,
+    orderId: order.id,
+    recipient: order.supplier.user.phone,
+    event: "ORDER_CANCELLED",
+    message: `Commande ${order.reference} annulée par le client avant confirmation. Aucune préparation nécessaire.`,
+  });
+  revalidatePath("/fournisseur");
   redirect(`/client/commande/${order.id}?annulee=1`);
 }
 

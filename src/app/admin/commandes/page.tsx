@@ -27,6 +27,7 @@ const TABS = [
   { value: "CLOSED", label: "Clôturées" },
   { value: "DISPUTED", label: "Litiges" },
   { value: "REFUSED", label: "Refusées" },
+  { value: "CANCELLED", label: "Annulées" },
 ];
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: SearchParams }) {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { formatDateTime, formatPhone } from "@/lib/format";
-import { Card, EmptyState, Icon, buttonClass } from "@/components/ui";
+import { Card, EmptyState, Icon, StatusBadge, buttonClass } from "@/components/ui";
 import { markNotificationSentAction } from "@/lib/actions/admin";
 import type { NotificationStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
@@ -85,9 +85,12 @@ export default async function AdminNotificationsPage({ searchParams }: { searchP
                         {notification.event}
                       </span>
                       {notification.order ? (
-                        <Link href={`/admin/commandes/${notification.orderId}`} className="text-xs font-semibold text-primary-container hover:underline">
-                          #{notification.order.reference}
-                        </Link>
+                        <>
+                          <Link href={`/admin/commandes/${notification.orderId}`} className="text-xs font-semibold text-primary-container hover:underline">
+                            #{notification.order.reference}
+                          </Link>
+                          <StatusBadge status={notification.order.status} />
+                        </>
                       ) : null}
                     </div>
                     <p className="mt-2 text-sm">{notification.message}</p>
